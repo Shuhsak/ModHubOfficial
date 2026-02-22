@@ -836,7 +836,45 @@
         const authTitle = document.getElementById('authTitle');
         const authSubmitBtn = document.getElementById('authSubmitBtn');
         const authToggleText = document.getElementById('authToggleText');
-        const authForm = document.getElementById('authForm');
+       const authForm = document.getElementById('authForm');
+
+// Обработка отправки формы (Вход / Регистрация)
+authForm.onsubmit = (e) => {
+    e.preventDefault(); // Запрещаем странице перезагружаться при нажатии
+    
+    const u = document.getElementById('authUsername').value.trim();
+    const p = document.getElementById('authPassword').value.trim();
+    
+    if (!u || !p) return showToast("Заполните все поля!");
+
+    // Надёжно определяем режим (убираем пробелы)
+    const toggleText = document.getElementById('authToggleBtn').textContent.trim();
+
+    // Если на кнопке написано "Войти" — сейчас режим регистрации
+    if (toggleText === 'Войти') {
+        
+        // РЕЖИМ РЕГИСТРАЦИИ
+        if (usersDB[u]) {
+            return showToast("Этот ник уже занят!");
+        }
+        
+        // Если ник свободен - сохраняем и входим
+        usersDB[u] = p; 
+        localStorage.setItem('modhub_users', JSON.stringify(usersDB)); 
+        login(u);
+        showToast("Аккаунт успешно создан!");
+
+    } else {
+        
+        // РЕЖИМ ВХОДА
+        if (usersDB[u] === p) { 
+            login(u); 
+            showToast("С возвращением!");
+        } else { 
+            showToast("Неверный логин или пароль!"); 
+        }
+    }
+};
         
         const adminPanel = document.getElementById('adminPanel');
         const adminBuildCooldown = document.getElementById('adminBuildCooldown');
