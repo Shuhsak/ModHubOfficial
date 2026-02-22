@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>База Модов Minecraft</title>
+    <!-- Tailwind CSS & Typography -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Marked for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- JSZip & FileSaver для создания архивов -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            850: '#1f2937',
+                            900: '#111827',
+                            950: '#030712',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+        
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+
+        .glass-header {
+            background: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-animate {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+        
+        .prose img {
+            border-radius: 0.5rem;
+            max-height: 400px;
+            object-fit: cover;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .toast-show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-200 min-h-screen font-sans antialiased flex flex-col relative">
+
+    <!-- Header & Search -->
+    <header class="glass-header sticky top-0 z-40 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                
+                <!-- Logo -->
+                <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                            <i class="fa-solid fa-cube text-white text-xl"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">Mod<span class="text-indigo-400">Hub</span></h1>
+                    </div>
+                    
+                    <!-- Mobile Buttons -->
+                    <div class="flex items-center gap-2 md:hidden">
+                        <button class="communityOpenBtn relative p-2 text-emerald-400 hover:text-emerald-300 transition-colors">
+                            <i class="fa-solid fa-globe text-2xl"></i>
+                        </button>
+                        <button class="aiOpenBtn relative p-2 text-purple-400 hover:text-purple-300 transition-colors">
+                            <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i>
+                        </button>
+                        <button class="cartOpenBtn relative p-2 text-gray-400 hover:text-white transition-colors">
+                            <i class="fa-solid fa-box-archive text-2xl"></i>
+                            <span class="cartBadge absolute top-0 right-0 -mt-1 -mr-1 bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+                        </button>
+                        <button class="profileOpenBtn relative p-2 text-gray-400 hover:text-white transition-colors">
+                            <i class="fa-solid fa-user text-2xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Desktop Search & Buttons -->
+                <div class="w-full md:w-1/2 lg:w-1/3 flex items-center gap-4">
+                    <div class="relative group flex-1">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-magnifying-glass text-gray-400 group-focus-within:text-indigo-400 transition-colors"></i>
+                        </div>
+                        <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-2.5 border border-gray-700 rounded-xl leading-5 bg-gray-900/50 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all sm:text-sm" placeholder="Поиск по базе...">
+                    </div>
+                    
+                    <button class="communityOpenBtn hidden md:block shrink-0 relative p-2 text-emerald-400 hover:text-emerald-300 transition-colors bg-gray-800 rounded-xl border border-gray-700 shadow-sm" title="Сборки сообщества">
+                        <i class="fa-solid fa-globe text-xl mx-2"></i>
+                    </button>
+
+                    <button class="aiOpenBtn hidden md:block shrink-0 relative p-2 text-purple-400 hover:text-purple-300 transition-colors bg-gray-800 rounded-xl border border-gray-700 shadow-sm" title="ИИ Ассистент">
+                        <i class="fa-solid fa-wand-magic-sparkles text-xl mx-2"></i>
+                    </button>
+
+                    <button class="cartOpenBtn hidden md:block shrink-0 relative p-2 text-gray-400 hover:text-white transition-colors bg-gray-800 rounded-xl border border-gray-700 shadow-sm">
+                        <i class="fa-solid fa-box-archive text-xl mx-2"></i>
+                        <span class="cartBadge absolute -top-2 -right-2 bg-indigo-500 text-white text-[11px] font-bold px-2 py-1 rounded-full hidden shadow-lg shadow-indigo-500/50">0</span>
+                    </button>
+                    
+                    <button class="profileOpenBtn hidden md:block shrink-0 relative p-2 text-gray-400 hover:text-white transition-colors bg-gray-800 rounded-xl border border-gray-700 shadow-sm">
+                        <i class="fa-solid fa-user text-xl mx-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <div class="mb-6 text-center md:text-left">
+            <h2 class="text-3xl font-extrabold text-white sm:text-4xl">Каталог контента</h2>
+            <p class="mt-3 max-w-2xl text-xl text-gray-400 sm:mt-4">Собирайте свои собственные модпаки прямо в браузере.</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
+            <div class="flex flex-wrap items-center gap-2" id="categoryTabs">
+                <button data-type="" data-category="" class="cat-btn bg-indigo-600 text-white px-5 py-2 rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/20">Все</button>
+                <button data-type="mod" data-category="" class="cat-btn bg-gray-850 text-gray-300 hover:bg-gray-800 hover:text-white border border-gray-800 px-5 py-2 rounded-xl font-medium transition-colors">Моды</button>
+                <button data-type="" data-category="optimization" class="cat-btn bg-gray-850 text-gray-300 hover:bg-gray-800 hover:text-white border border-gray-800 px-5 py-2 rounded-xl font-medium transition-colors"><i class="fa-solid fa-bolt text-yellow-400 mr-1"></i> Оптимизация</button>
+                <button data-type="shader" data-category="" class="cat-btn bg-gray-850 text-gray-300 hover:bg-gray-800 hover:text-white border border-gray-800 px-5 py-2 rounded-xl font-medium transition-colors">Шейдеры</button>
+                <button data-type="resourcepack" data-category="" class="cat-btn bg-gray-850 text-gray-300 hover:bg-gray-800 hover:text-white border border-gray-800 px-5 py-2 rounded-xl font-medium transition-colors">Текстур-паки</button>
+            </div>
+            
+            <div class="shrink-0 w-full lg:w-auto flex flex-wrap gap-2">
+                <select id="sortFilter" class="flex-1 sm:flex-none bg-gray-850 border border-gray-700 text-white rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer font-medium shadow-sm">
+                    <option value="relevance">По релевантности</option>
+                    <option value="downloads">По загрузкам</option>
+                    <option value="newest">Сначала новые</option>
+                    <option value="updated">Недавно обновленные</option>
+                </select>
+                <select id="versionFilter" class="flex-1 sm:flex-none bg-gray-850 border border-gray-700 text-white rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer font-medium shadow-sm">
+                    <option value="">Все версии</option>
+                    <option value="1.21.1">1.21.1</option>
+                    <option value="1.20.4">1.20.4</option>
+                    <option value="1.20.1">1.20.1</option>
+                    <option value="1.19.4">1.19.4</option>
+                    <option value="1.19.2">1.19.2</option>
+                    <option value="1.18.2">1.18.2</option>
+                    <option value="1.16.5">1.16.5</option>
+                    <option value="1.12.2">1.12.2</option>
+                </select>
+                <select id="loaderFilter" class="flex-1 sm:flex-none bg-gray-850 border border-gray-700 text-white rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer font-medium shadow-sm">
+                    <option value="">Все загрузчики</option>
+                    <option value="fabric">Fabric</option>
+                    <option value="forge">Forge</option>
+                    <option value="quilt">Quilt</option>
+                    <option value="neoforge">NeoForge</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Mods Grid -->
+        <div id="modsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+
+        <!-- Loading & States -->
+        <div id="loading" class="flex flex-col justify-center items-center py-12 hidden">
+            <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 text-gray-400 font-medium">Загрузка...</p>
+        </div>
+
+        <div id="loadMoreContainer" class="mt-12 text-center hidden">
+            <button id="loadMoreBtn" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gray-800 hover:bg-gray-700 transition-colors">
+                Загрузить еще <i class="fa-solid fa-arrow-down ml-2"></i>
+            </button>
+        </div>
+        
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
+                <i class="fa-solid fa-ghost text-4xl text-gray-500"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-2">Ничего не найдено</h3>
+        </div>
+    </main>
+
+    <!-- Modal: Информация о проекте -->
+    <div id="projectModal" class="fixed inset-0 z-50 hidden flex items-center justify-center px-4 sm:px-6">
+        <div class="modalBackdrop absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl modal-animate">
+            <div class="flex justify-between items-center p-4 sm:p-6 border-b border-gray-800 bg-gray-850">
+                <h3 id="modalTitle" class="text-xl sm:text-2xl font-bold text-white truncate pr-4">Загрузка...</h3>
+                <button class="closeModalBtn text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg w-10 h-10 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 sm:p-6 overflow-y-auto flex-grow relative" id="modalBody">
+                <div id="modalLoading" class="flex flex-col justify-center items-center py-20">
+                    <i class="fa-solid fa-spinner fa-spin text-5xl text-indigo-500 mb-4"></i>
+                </div>
+                <div id="modalContent" class="hidden">
+                    <div class="flex flex-col sm:flex-row gap-6 mb-8">
+                        <img id="modalIcon" src="" alt="Logo" class="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl object-contain bg-gray-850 border border-gray-800 p-2 shrink-0 shadow-lg">
+                        <div class="flex flex-col justify-center w-full">
+                            <p id="modalShortDesc" class="text-gray-300 text-base sm:text-lg mb-4"></p>
+                            
+                            <div id="modalDownloadSection" class="mt-2 flex flex-col gap-3 p-4 bg-gray-800/50 rounded-xl border border-gray-700 hidden">
+                                <h4 class="text-white font-bold text-sm uppercase tracking-wider text-gray-400">Выберите версию для сборки</h4>
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <select id="modalLoaderSelect" class="bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none cursor-pointer w-full sm:w-1/4">
+                                        <option value="">Любой</option>
+                                        <option value="fabric">Fabric</option>
+                                        <option value="forge">Forge</option>
+                                        <option value="neoforge">NeoForge</option>
+                                    </select>
+                                    <select id="modalVersionSelect" class="flex-1 bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none cursor-pointer">
+                                        <option>Загрузка версий...</option>
+                                    </select>
+                                    
+                                    <div class="flex gap-2 w-full sm:w-auto">
+                                        <button id="modalAddToCartBtn" class="flex-1 sm:flex-none inline-flex items-center justify-center px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20 whitespace-nowrap">
+                                            <i class="fa-solid fa-plus mr-2"></i> В сборку
+                                        </button>
+                                        <a id="modalDownloadBtn" href="#" target="_blank" title="Скачать отдельным файлом" class="inline-flex items-center justify-center px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-xl font-bold transition-all border border-gray-600">
+                                            <i class="fa-solid fa-download"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-4 border-b border-gray-800 pb-2">Подробное описание</h4>
+                        <div id="modalMarkdown" class="prose prose-invert prose-indigo max-w-none text-gray-300"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Сборки Сообщества -->
+    <div id="communityModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center px-4 sm:px-6">
+        <div class="communityBackdrop absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-gray-900 border border-emerald-500/30 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-[0_0_40px_rgba(16,185,129,0.15)] modal-animate">
+            <div class="flex justify-between items-center p-4 sm:p-6 border-b border-gray-800 bg-gray-850 shrink-0">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-globe text-2xl text-emerald-400"></i>
+                    <h3 class="text-xl font-bold text-white">Сборки сообщества</h3>
+                </div>
+                <button class="closeCommunityBtn text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg w-10 h-10 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 sm:p-6 overflow-y-auto flex-grow bg-gray-900">
+                <div id="communityGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Карточки будут добавлены через JS -->
+                </div>
+                <div id="communityEmptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
+                    <i class="fa-solid fa-users-slash text-4xl text-gray-600 mb-4"></i>
+                    <h3 class="text-xl font-bold text-white mb-2">Пока нет опубликованных сборок</h3>
+                    <p class="text-gray-400">Станьте первым, кто опубликует свою сборку!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Публикация сборки -->
+    <div id="publishModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center px-4 sm:px-6">
+        <div class="publishBackdrop absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-gray-900 border border-blue-500/30 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-[0_0_40px_rgba(59,130,246,0.15)] modal-animate">
+            <div class="flex justify-between items-center p-4 sm:p-6 border-b border-gray-800 bg-gray-850 shrink-0">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-upload text-xl text-blue-400"></i>
+                    <h3 class="text-xl font-bold text-white">Публикация сборки</h3>
+                </div>
+                <button class="closePublishBtn text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg w-10 h-10 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 sm:p-6 overflow-y-auto flex-grow bg-gray-900">
+                <form id="publishForm" class="flex flex-col gap-4">
+                    <div>
+                        <label class="block text-gray-400 text-sm mb-1">Название сборки</label>
+                        <input type="text" id="publishName" readonly class="w-full bg-gray-800 border border-gray-700 text-gray-400 rounded-xl px-4 py-3 focus:outline-none cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 text-sm mb-1">Краткое описание</label>
+                        <textarea id="publishDesc" required rows="3" class="w-full bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none" placeholder="Расскажите, о чем ваша сборка..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 text-sm mb-1">Картинка сборки</label>
+                        <div class="flex items-center gap-4">
+                            <img id="publishPreviewImg" src="" class="w-16 h-16 rounded-xl object-cover bg-gray-800 border border-gray-700 hidden">
+                            <label class="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-xl font-medium transition-all cursor-pointer text-center">
+                                <i class="fa-solid fa-image mr-2"></i> Выбрать картинку
+                                <input type="file" id="publishImgInput" accept="image/*" class="hidden">
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Оставьте пустым для стандартной иконки</p>
+                    </div>
+                    <button type="submit" id="publishSubmitBtn" class="w-full px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all mt-4 shadow-lg shadow-blue-500/20">
+                        Опубликовать в сообществе
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Корзина (Сборка) -->
+    <div id="cartModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center px-4 sm:px-6">
+        <div class="cartBackdrop absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-gray-900 border border-indigo-500/30 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-[0_0_40px_rgba(99,102,241,0.15)] modal-animate">
+            <div class="flex justify-between items-center p-4 sm:p-6 border-b border-gray-800 bg-gray-850">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-box-archive text-2xl text-indigo-400"></i>
+                    <h3 id="cartTitle" class="text-xl font-bold text-white">Текущая сборка</h3>
+                </div>
+                <button class="closeCartBtn text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg w-10 h-10 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 sm:p-6 overflow-y-auto flex-grow" id="cartBody">
+                <div id="cartEmptyState" class="flex flex-col items-center justify-center py-16 text-center">
+                    <i class="fa-solid fa-wind text-5xl text-gray-600 mb-4"></i>
+                    <h4 class="text-xl font-bold text-white mb-2">Сборка пуста</h4>
+                </div>
+                <ul id="cartList" class="space-y-3 hidden"></ul>
+            </div>
+            <div class="p-4 sm:p-6 border-t border-gray-800 bg-gray-850 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="text-left w-full sm:w-auto">
+                    <p class="text-gray-400 text-sm">Примерный вес: <span id="cartTotalSize" class="text-indigo-400 font-bold">0 MB</span></p>
+                </div>
+                <button id="cartDownloadZipBtn" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg disabled:opacity-50">
+                    <i class="fa-solid fa-file-zipper mr-2"></i> Скачать сборку (.zip)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Аккаунт / Профиль -->
+    <div id="profileModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center px-4 sm:px-6">
+        <div class="profileBackdrop absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-gray-900 border border-indigo-500/30 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-[0_0_40px_rgba(99,102,241,0.15)] modal-animate">
+            <div class="flex justify-between items-center p-4 sm:p-6 border-b border-gray-800 bg-gray-850">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-user-circle text-2xl text-indigo-400"></i>
+                    <h3 class="text-xl font-bold text-white">Управление профилем</h3>
+                </div>
+                <button class="closeProfileBtn text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg w-10 h-10 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 sm:p-6 overflow-y-auto flex-grow relative" id="profileBody">
+                
+                <!-- АВТОРИЗАЦИЯ (ВХОД / РЕГИСТРАЦИЯ) -->
+                <div id="authSection" class="flex flex-col w-full max-w-sm mx-auto py-4 hidden">
+                    <h3 id="authTitle" class="text-2xl font-bold text-white mb-6 text-center">Вход в систему</h3>
+                    <form id="authForm" class="flex flex-col gap-4">
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-1">Никнейм</label>
+                            <input type="text" id="authUsername" required class="w-full bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Ваш ник">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-1">Пароль</label>
+                            <input type="password" id="authPassword" required class="w-full bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="••••••••">
+                        </div>
+                        <button type="submit" id="authSubmitBtn" class="w-full px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all mt-2 shadow-lg">
+                            Войти
+                        </button>
+                    </form>
+                    <p class="text-gray-400 text-sm text-center mt-6">
+                        <span id="authToggleText">Нет аккаунта?</span> 
+                        <button id="authToggleBtn" class="text-indigo-400 hover:text-indigo-300 font-bold ml-1 transition-colors">Зарегистрироваться</button>
+                    </p>
+                    <div class="mt-6 pt-6 border-t border-gray-800 text-center">
+                        <button id="guestContinueBtn" class="text-gray-400 hover:text-white transition-colors text-sm font-medium">
+                            <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Продолжить как гость
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ЛИЧНЫЙ КАБИНЕТ -->
+                <div id="dashboardSection" class="modal-animate hidden">
+                    <div class="flex items-center justify-between bg-gray-850 border border-gray-800 p-4 rounded-xl mb-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 bg-indigo-600/20 rounded-full flex items-center justify-center text-indigo-400 text-xl border border-indigo-500/30 shrink-0">
+                                <i id="profileStatusIcon" class="fa-solid fa-user-secret text-gray-400"></i>
+                            </div>
+                            <div>
+                                <h4 id="profileUsernameDisplay" class="text-lg font-bold text-white leading-tight">Гость</h4>
+                                <div id="profileStatusBadge" class="inline-flex items-center mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-700 text-gray-300 border border-gray-600">
+                                    <span id="profileStatusText"><i class="fa-solid fa-memory mr-1"></i> Сохраняется локально</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                            <button id="loginInsteadBtn" class="w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center transition-colors shadow-lg" title="Войти в аккаунт">
+                                <i class="fa-solid fa-right-to-bracket"></i>
+                            </button>
+                            <button id="logoutBtn" class="w-10 h-10 bg-gray-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-xl flex items-center justify-center transition-colors border border-gray-700 hidden" title="Выйти">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ПАНЕЛЬ АДМИНИСТРАТОРА -->
+                    <div id="adminPanel" class="hidden mb-6 bg-red-900/20 border border-red-500/30 p-4 rounded-xl">
+                        <h4 class="text-red-400 font-bold text-sm uppercase tracking-wider mb-3"><i class="fa-solid fa-shield-halved mr-1"></i> Панель Администратора</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-400 text-xs mb-1">Кулдаун сборки (минут)</label>
+                                <input type="number" id="adminBuildCooldown" class="w-full bg-gray-900 border border-red-500/50 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-400 text-xs mb-1">Кулдаун общения (минут)</label>
+                                <input type="number" id="adminChatCooldown" class="w-full bg-gray-900 border border-red-500/50 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-400 text-xs mb-1">Макс. сборок</label>
+                                <input type="number" id="adminBuildLimit" class="w-full bg-gray-900 border border-red-500/50 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-400 text-xs mb-1">Макс. сообщений</label>
+                                <input type="number" id="adminChatLimit" class="w-full bg-gray-900 border border-red-500/50 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500">
+                            </div>
+                        </div>
+                        <div class="mt-4 flex gap-2">
+                            <button id="adminSaveSettingsBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 rounded-lg transition-colors">Сохранить настройки</button>
+                            <button id="adminResetLimitsBtn" class="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white text-sm font-bold py-2 rounded-lg transition-colors" title="Сбросить текущие счетчики у себя">Сбросить лимиты (тест)</button>
+                        </div>
+                        
+                        <h4 class="text-red-400 font-bold text-sm uppercase tracking-wider mb-3 mt-6"><i class="fa-solid fa-users-gear mr-1"></i> Выдача прав администратора</h4>
+                        <div class="flex gap-2">
+                            <input type="text" id="adminNewUser" class="flex-1 bg-gray-900 border border-red-500/50 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500" placeholder="Никнейм игрока...">
+                            <button id="adminGrantBtn" class="bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition-colors" title="Дать админку"><i class="fa-solid fa-plus"></i></button>
+                            <button id="adminRevokeBtn" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition-colors" title="Забрать админку"><i class="fa-solid fa-minus"></i></button>
+                        </div>
+                    </div>
+
+                    <h4 class="text-white font-bold text-sm uppercase tracking-wider text-gray-400 mb-3">Управление сборками</h4>
+                    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                        <input type="text" id="newPackNameInput" class="flex-1 bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none placeholder-gray-500" placeholder="Название новой сборки...">
+                        <button id="createPackBtn" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all">
+                            Создать
+                        </button>
+                        <button id="saveCurrentPackBtn" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-all">
+                            Сохранить текущую
+                        </button>
+                    </div>
+
+                    <h4 class="text-white font-bold text-sm uppercase tracking-wider text-gray-400 mb-3 mt-6">Резервное копирование и Импорт</h4>
+                    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                        <button id="exportPacksBtn" class="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-download"></i> Экспорт (JSON)
+                        </button>
+                        <label class="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-xl font-medium transition-all cursor-pointer flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-upload"></i> Импорт (JSON / .mrpack)
+                            <input type="file" id="importPacksInput" accept=".json,.mrpack" class="hidden">
+                        </label>
+                    </div>
+
+                    <h4 class="text-white font-bold text-sm uppercase tracking-wider text-gray-400 mb-3">Сохраненные сборки</h4>
+                    <div id="profileEmptyState" class="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-gray-800 rounded-xl">
+                        <p class="text-gray-400 text-sm">У вас пока нет сохраненных сборок</p>
+                    </div>
+                    <ul id="savedPacksList" class="space-y-3 hidden"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: AI Assistant -->
+    <div id="aiModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center px-4 sm:px-6">
+        <div class="aiBackdrop absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-gray-900 border border-purple-500/30 rounded-2xl w-full max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col shadow-[0_0_40px_rgba(168,85,247,0.15)] modal-animate">
+            <div class="flex justify-between items-center p-4 sm:p-6 border-b border-gray-800 bg-gray-850 shrink-0">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-wand-magic-sparkles text-2xl text-purple-400"></i>
+                    <h3 class="text-xl font-bold text-white">AI-Ассистент</h3>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="aiLimitsBadge" class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-xs font-medium text-gray-300">
+                        <i class="fa-solid fa-bolt text-purple-400"></i> <span id="aiLimitsText">Лимиты</span>
+                    </div>
+                    <button class="closeAiBtn text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg w-10 h-10 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex p-2 bg-gray-850 border-b border-gray-800 gap-2 shrink-0">
+                <button id="aiModeBuildBtn" class="flex-1 py-2.5 text-sm font-bold rounded-xl bg-purple-600 text-white shadow-md transition-all">
+                    <i class="fa-solid fa-boxes-packing mr-1"></i> Сборка модпака
+                </button>
+                <button id="aiModeChatBtn" class="flex-1 py-2.5 text-sm font-bold rounded-xl bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition-all">
+                    <i class="fa-solid fa-comments mr-1"></i> Просто общение
+                </button>
+            </div>
+            
+            <div id="aiChatHistory" class="p-4 sm:p-6 overflow-y-auto flex-grow space-y-5 bg-gray-900 scroll-smooth relative">
+                <div id="aiCooldownOverlay" class="absolute inset-0 bg-gray-900/90 backdrop-blur-sm z-10 hidden flex flex-col items-center justify-center p-6 text-center">
+                    <i class="fa-solid fa-hourglass-half text-6xl text-purple-500 mb-4 animate-pulse"></i>
+                    <h3 class="text-2xl font-bold text-white mb-2">Нейросеть отдыхает</h3>
+                    <p class="text-gray-300 max-w-md mx-auto mb-6">Во избежание исчерпания лимитов API, ассистенту нужен небольшой перерыв.</p>
+                    <div class="bg-gray-800 border border-gray-700 px-6 py-4 rounded-2xl">
+                        <p class="text-sm text-gray-400 uppercase tracking-widest font-bold mb-1">Доступ восстановится через:</p>
+                        <p id="aiCooldownTimer" class="text-3xl font-mono font-bold text-purple-400">00:00</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/30"><i class="fa-solid fa-robot text-white text-xs"></i></div>
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl rounded-tl-none p-4 text-sm text-gray-200 shadow-sm max-w-[85%]">
+                        Привет! Я встроенный ИИ-помощник каталога ModHub.<br><br>Я могу <b>автоматически собирать для тебя готовые модпаки</b> или просто <b>работать в режиме консультанта</b>, советуя интересные моды для игры. Выбери нужный режим сверху и напиши свой запрос!
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 bg-gray-850 border-t border-gray-800 flex flex-col gap-3 shrink-0">
+                <div id="aiFiltersRow" class="flex flex-wrap items-center gap-3 text-sm text-gray-400 transition-all">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-code-branch"></i> Версия:
+                        <select id="aiMcVersion" class="bg-gray-900 border border-gray-700 text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-purple-500 transition-colors">
+                            <option value="1.21.1">1.21.1</option>
+                            <option value="1.20.4">1.20.4</option>
+                            <option value="1.20.1" selected>1.20.1</option>
+                            <option value="1.19.4">1.19.4</option>
+                            <option value="1.19.2">1.19.2</option>
+                            <option value="1.18.2">1.18.2</option>
+                            <option value="1.16.5">1.16.5</option>
+                            <option value="1.12.2">1.12.2</option>
+                        </select>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-cube"></i> Загрузчик:
+                        <select id="aiLoader" class="bg-gray-900 border border-gray-700 text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-purple-500 transition-colors">
+                            <option value="fabric" selected>Fabric</option>
+                            <option value="forge">Forge</option>
+                            <option value="neoforge">NeoForge</option>
+                            <option value="quilt">Quilt</option>
+                        </select>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer ml-auto">
+                        <i class="fa-solid fa-layer-group"></i> Модов:
+                        <input type="number" id="aiModCount" min="1" max="50" value="30" class="w-16 bg-gray-900 border border-gray-700 text-white rounded-lg px-2 py-1.5 text-center focus:outline-none focus:border-purple-500 transition-colors">
+                    </label>
+                </div>
+                <div class="flex gap-3 relative">
+                    <input type="text" id="aiInput" class="flex-1 bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="Попросите собрать сборку...">
+                    <button id="aiSendBtn" class="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white px-6 rounded-xl transition-all font-bold shadow-lg shadow-purple-500/30">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Уведомление -->
+    <div id="toast" class="fixed bottom-5 right-5 z-[100] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 bg-gray-800 border border-indigo-500/50 px-5 py-4 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex items-center gap-4">
+        <div class="w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center text-indigo-400 shrink-0">
+            <i class="fa-solid fa-info"></i>
+        </div>
+        <div>
+            <h4 class="font-bold text-sm text-white">Уведомление</h4>
+            <p id="toastMessage" class="text-xs text-gray-400 truncate max-w-[250px]">...</p>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // ==========================================
+        // БАЗОВЫЕ SVG И УТИЛИТЫ
+        // ==========================================
+        let toastTimeout; 
+        const defaultIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"></path><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+        const defaultIcon = `data:image/svg+xml;utf8,${encodeURIComponent(defaultIconSvg)}`;
+
+        function showToast(message) {
+            toastMessage.textContent = message;
+            const toast = document.getElementById('toast');
+            toast.classList.add('toast-show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('toast-show'), 3000);
+        }
+
+        // ==========================================
+        // ГЛОБАЛЬНЫЕ ЭЛЕМЕНТЫ И УПРАВЛЕНИЕ МОДАЛКАМИ
+        // ==========================================
+        const cartModals = document.getElementById('cartModal');
+        const profileModal = document.getElementById('profileModal');
+        const aiModal = document.getElementById('aiModal');
+        const projectModal = document.getElementById('projectModal');
+        const communityModal = document.getElementById('communityModal');
+        const publishModal = document.getElementById('publishModal');
+        const newPackNameInput = document.getElementById('newPackNameInput');
+
+        // Вспомогательная функция для разблокировки скролла страницы
+        function checkBodyOverflow() {
+            if (
+                projectModal.classList.contains('hidden') && 
+                cartModals.classList.contains('hidden') && 
+                profileModal.classList.contains('hidden') && 
+                aiModal.classList.contains('hidden') &&
+                communityModal.classList.contains('hidden') &&
+                publishModal.classList.contains('hidden')
+            ) {
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Обработчики открытия/закрытия окон (восстановлены и привязаны глобально)
+        document.querySelectorAll('.cartOpenBtn').forEach(b => b.addEventListener('click', () => { 
+            cartModals.classList.remove('hidden'); 
+            document.body.style.overflow = 'hidden'; 
+        }));
+        document.querySelectorAll('.closeCartBtn, .cartBackdrop').forEach(b => b.addEventListener('click', () => { 
+            cartModals.classList.add('hidden'); 
+            checkBodyOverflow(); 
+        }));
+
+        document.querySelectorAll('.profileOpenBtn').forEach(b => b.addEventListener('click', () => { 
+            profileModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            if (!currentUser) showAuthScreen();
+            else {
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                setupProfileUI();
+            }
+        }));
+        document.querySelectorAll('.closeProfileBtn, .profileBackdrop').forEach(b => b.addEventListener('click', () => { 
+            profileModal.classList.add('hidden'); 
+            checkBodyOverflow(); 
+        }));
+
+        document.querySelectorAll('.aiOpenBtn').forEach(b => b.addEventListener('click', () => { 
+            if (!currentUser) {
+                showToast('Для использования ИИ необходимо войти в аккаунт!');
+                profileModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                showAuthScreen();
+                return;
+            }
+            aiModal.classList.remove('hidden'); 
+            document.body.style.overflow = 'hidden'; 
+            updateAiUI(); 
+        }));
+        document.querySelectorAll('.closeAiBtn, .aiBackdrop').forEach(b => b.addEventListener('click', () => { 
+            aiModal.classList.add('hidden'); 
+            checkBodyOverflow(); 
+        }));
+
+        document.querySelectorAll('.closeModalBtn, .modalBackdrop').forEach(b => b.addEventListener('click', () => { 
+            projectModal.classList.add('hidden'); 
+            checkBodyOverflow(); 
+        }));
+
+        document.querySelectorAll('.communityOpenBtn').forEach(b => b.addEventListener('click', () => { 
+            renderCommunityPacks(); 
+            communityModal.classList.remove('hidden'); 
+            document.body.style.overflow = 'hidden'; 
+        }));
+        document.querySelectorAll('.closeCommunityBtn, .communityBackdrop').forEach(b => b.addEventListener('click', () => { 
+            communityModal.classList.add('hidden'); 
+            checkBodyOverflow(); 
+        }));
+
+        document.querySelectorAll('.closePublishBtn, .publishBackdrop').forEach(b => b.addEventListener('click', () => { 
+            publishModal.classList.add('hidden'); 
+            checkBodyOverflow(); 
+        }));
+
+        // ==========================================
+        // СИСТЕМА АККАУНТОВ, ХРАНЕНИЯ И СООБЩЕСТВА
+        // ==========================================
+        let currentUser = localStorage.getItem('modhub_currentUser') || null; 
+        let usersDB = JSON.parse(localStorage.getItem('modhub_users')) || {};
+        
+        let currentPackName = 'Новая сборка';
+        let savedPacks = {}; 
+        let cart = []; 
+
+        const ADMIN_USERNAME = 'Shuhsak111'; // Коренной админ
+        let adminsDB = JSON.parse(localStorage.getItem('modhub_admins')) || [ADMIN_USERNAME];
+
+        function isAdmin(username) {
+            if (!username) return false;
+            return adminsDB.includes(username) || username === ADMIN_USERNAME;
+        }
+
+        // Глобальная база сборок сообщества
+        let communityPacksDB = JSON.parse(localStorage.getItem('modhub_community_packs'));
+        if (!communityPacksDB || communityPacksDB.length === 0) {
+            communityPacksDB = [
+                {
+                    id: '1',
+                    name: 'Легкое Выживание',
+                    description: 'Отличная сборка для спокойной игры с улучшенными биомами и минимальной магией. Включает базовую оптимизацию.',
+                    image: defaultIcon,
+                    author: 'Notch',
+                    mods: [
+                        {title: "Sodium", filename: "sodium.jar", url: "", sizeMB: "1.2", type: "mod"},
+                        {title: "Biomes O' Plenty", filename: "biomes.jar", url: "", sizeMB: "5.4", type: "mod"}
+                    ]
+                }
+            ];
+            localStorage.setItem('modhub_community_packs', JSON.stringify(communityPacksDB));
+        }
+
+        function loadPacks() {
+            const storageKey = currentUser ? `modhub_packs_${currentUser}` : 'modhub_packs_guest';
+            savedPacks = JSON.parse(localStorage.getItem(storageKey)) || {};
+        }
+
+        function savePacksToStorage() {
+            const storageKey = currentUser ? `modhub_packs_${currentUser}` : 'modhub_packs_guest';
+            localStorage.setItem(storageKey, JSON.stringify(savedPacks));
+        }
+
+        function autoSaveCart() {
+            if (savedPacks[currentPackName]) {
+                savedPacks[currentPackName] = [...cart];
+                savePacksToStorage();
+            }
+        }
+
+        // ==========================================
+        // ГЛОБАЛЬНЫЙ ОБРАБОТЧИК КЛИКОВ (ДЕЛЕГИРОВАНИЕ)
+        // ==========================================
+        document.body.addEventListener('click', async (e) => {
+            const btnOpenProfile = e.target.closest('[data-action="openProfileFromAi"]');
+            if (btnOpenProfile) {
+                const packName = decodeURIComponent(btnOpenProfile.dataset.pack);
+                currentPackName = packName;
+                cart = [...(savedPacks[packName] || [])];
+                updateCartUI();
+                aiModal.classList.add('hidden');
+                profileModal.classList.remove('hidden');
+                renderProfilePacks();
+                showToast(`Сборка "${packName}" загружена!`);
+                return;
+            }
+
+            const btnDeleteCommunity = e.target.closest('[data-action="deleteCommunityPack"]');
+            if (btnDeleteCommunity) {
+                if (!isAdmin(currentUser)) return showToast("У вас нет прав для этого действия!");
+                const packId = btnDeleteCommunity.dataset.id;
+                communityPacksDB = communityPacksDB.filter(p => p.id !== packId);
+                localStorage.setItem('modhub_community_packs', JSON.stringify(communityPacksDB));
+                renderCommunityPacks();
+                showToast("Сборка удалена из сообщества!");
+                return;
+            }
+
+            const btnAddCommunity = e.target.closest('[data-action="addCommunityPack"]');
+            if (btnAddCommunity) {
+                if (!currentUser) {
+                    communityModal.classList.add('hidden');
+                    profileModal.classList.remove('hidden');
+                    showAuthScreen();
+                    return showToast("Войдите в аккаунт, чтобы сохранять сборки!");
+                }
+                const pack = JSON.parse(decodeURIComponent(btnAddCommunity.dataset.pack));
+                let newName = pack.name;
+                if (savedPacks[newName]) newName += ` (от ${pack.author})`;
+                savedPacks[newName] = pack.mods;
+                savePacksToStorage();
+                renderProfilePacks();
+                showToast(`Сборка "${newName}" добавлена в ваш профиль!`);
+                return;
+            }
+
+            const btnDownloadCommunity = e.target.closest('[data-action="downloadCommunityPack"]');
+            if (btnDownloadCommunity) {
+                const pack = JSON.parse(decodeURIComponent(btnDownloadCommunity.dataset.pack));
+                if (!pack.mods || pack.mods.length === 0) return showToast("Сборка пуста!");
+                showToast("Подготовка архива, пожалуйста подождите...");
+                const zip = new JSZip(); 
+                const folders = {
+                    'mod': zip.folder('mods'),
+                    'resourcepack': zip.folder('resourcepacks'),
+                    'shader': zip.folder('shaderpacks'),
+                    'datapack': zip.folder('datapacks'),
+                    'other': zip.folder('other')
+                };
+
+                try {
+                    for (let item of pack.mods) {
+                        if(!item.url) continue;
+                        const res = await fetch(item.url);
+                        const blob = await res.blob();
+                        const itemType = item.type || 'mod'; 
+                        const targetFolder = folders[itemType] || folders['other'];
+                        targetFolder.file(item.filename, blob);
+                    }
+                    const safeName = pack.name.replace(/\s/g, '_').replace(/[^a-zA-Z0-9а-яА-Я_]/g, '');
+                    saveAs(await zip.generateAsync({ type: "blob" }), `${safeName}_community.zip`);
+                    showToast("Архив успешно скачан!");
+                } catch (err) { 
+                    showToast("Ошибка скачивания файлов!"); 
+                }
+                return;
+            }
+        });
+
+        // ==========================================
+        // ЛОГИКА АВТОРИЗАЦИИ И АДМИНКИ
+        // ==========================================
+        let isRegisterMode = false;
+        const authToggleBtn = document.getElementById('authToggleBtn');
+        const authTitle = document.getElementById('authTitle');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const authToggleText = document.getElementById('authToggleText');
+        const authForm = document.getElementById('authForm');
+        
+        const adminPanel = document.getElementById('adminPanel');
+        const adminBuildCooldown = document.getElementById('adminBuildCooldown');
+        const adminChatCooldown = document.getElementById('adminChatCooldown');
+        const adminBuildLimit = document.getElementById('adminBuildLimit');
+        const adminChatLimit = document.getElementById('adminChatLimit');
+
+        authToggleBtn.addEventListener('click', () => {
+            isRegisterMode = !isRegisterMode;
+            if (isRegisterMode) {
+                authTitle.textContent = 'Регистрация';
+                authSubmitBtn.textContent = 'Создать аккаунт';
+                authToggleText.textContent = 'Уже есть аккаунт?';
+                authToggleBtn.textContent = 'Войти';
+            } else {
+                authTitle.textContent = 'Вход в систему';
+                authSubmitBtn.textContent = 'Войти';
+                authToggleText.textContent = 'Нет аккаунта?';
+                authToggleBtn.textContent = 'Зарегистрироваться';
+            }
+        });
+
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value.trim();
+            
+            if (!username || !password) return showToast('Заполните все поля!');
+            
+            if (isRegisterMode) {
+                if (usersDB[username]) return showToast('Этот логин уже занят!');
+                usersDB[username] = password;
+                localStorage.setItem('modhub_users', JSON.stringify(usersDB));
+                loginUser(username);
+                showToast('Аккаунт успешно создан!');
+            } else {
+                if (usersDB[username] !== password) return showToast('Неверный логин или пароль!');
+                loginUser(username);
+                showToast('Успешный вход!');
+            }
+        });
+
+        document.getElementById('guestContinueBtn').addEventListener('click', () => {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            setupProfileUI();
+        });
+
+        document.getElementById('loginInsteadBtn').addEventListener('click', () => {
+            showAuthScreen();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            currentUser = null;
+            localStorage.removeItem('modhub_currentUser');
+            loadPacks(); 
+            currentPackName = 'Новая сборка';
+            cart = [];
+            updateCartUI();
+            
+            showAuthScreen();
+            showToast('Вы вышли из аккаунта. Включен гостевой режим.');
+        });
+
+        function loginUser(username) {
+            currentUser = username;
+            localStorage.setItem('modhub_currentUser', username);
+            loadPacks();
+            currentPackName = 'Новая сборка';
+            cart = [];
+            updateCartUI();
+            
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            setupProfileUI();
+            
+            if(isAdmin(currentUser)) {
+                adminBuildCooldown.value = getAiSetting('buildCooldown', 15);
+                adminChatCooldown.value = getAiSetting('chatCooldown', 25);
+                adminBuildLimit.value = getAiSetting('buildLimit', 3);
+                adminChatLimit.value = getAiSetting('chatLimit', 15);
+            }
+        }
+
+        function showAuthScreen() {
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('authUsername').value = '';
+            document.getElementById('authPassword').value = '';
+        }
+
+        function setupProfileUI() {
+            if (currentUser) {
+                document.getElementById('profileUsernameDisplay').textContent = currentUser;
+                document.getElementById('profileStatusIcon').className = 'fa-solid fa-user-check text-indigo-400';
+                document.getElementById('profileStatusText').innerHTML = 'Аккаунт';
+                document.getElementById('profileStatusBadge').className = 'inline-flex items-center mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30';
+                
+                document.getElementById('logoutBtn').classList.remove('hidden');
+                document.getElementById('loginInsteadBtn').classList.add('hidden');
+                
+                if (isAdmin(currentUser)) {
+                    adminPanel.classList.remove('hidden');
+                } else {
+                    adminPanel.classList.add('hidden');
+                }
+
+            } else {
+                document.getElementById('profileUsernameDisplay').textContent = 'Гость';
+                document.getElementById('profileStatusIcon').className = 'fa-solid fa-user-secret text-gray-400';
+                document.getElementById('profileStatusText').innerHTML = '<i class="fa-solid fa-memory mr-1"></i> Локально';
+                document.getElementById('profileStatusBadge').className = 'inline-flex items-center mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-700 text-gray-300 border border-gray-600';
+                
+                document.getElementById('logoutBtn').classList.add('hidden');
+                document.getElementById('loginInsteadBtn').classList.remove('hidden');
+                adminPanel.classList.add('hidden');
+            }
+            renderProfilePacks();
+            updateAiUI(); 
+        }
+        
+        document.getElementById('adminSaveSettingsBtn').addEventListener('click', () => {
+            localStorage.setItem('modhub_ai_set_buildCooldown', adminBuildCooldown.value);
+            localStorage.setItem('modhub_ai_set_chatCooldown', adminChatCooldown.value);
+            localStorage.setItem('modhub_ai_set_buildLimit', adminBuildLimit.value);
+            localStorage.setItem('modhub_ai_set_chatLimit', adminChatLimit.value);
+            showToast('Настройки лимитов сохранены для всех пользователей!');
+        });
+        
+        document.getElementById('adminResetLimitsBtn').addEventListener('click', () => {
+            aiUsageData.buildCount = 0;
+            aiUsageData.chatCount = 0;
+            aiUsageData.cooldownUntil = 0;
+            saveAiUsageData();
+            updateAiUI();
+            showToast('Твои лимиты сброшены!');
+        });
+
+        document.getElementById('adminGrantBtn').addEventListener('click', () => {
+            const user = document.getElementById('adminNewUser').value.trim();
+            if (!user) return showToast("Введите ник!");
+            if (!usersDB[user]) return showToast("Такого пользователя не существует!");
+            if (isAdmin(user)) return showToast("Пользователь уже является админом!");
+            
+            adminsDB.push(user);
+            localStorage.setItem('modhub_admins', JSON.stringify(adminsDB));
+            showToast(`Права администратора выданы пользователю ${user}!`);
+            document.getElementById('adminNewUser').value = '';
+        });
+
+        document.getElementById('adminRevokeBtn').addEventListener('click', () => {
+            const user = document.getElementById('adminNewUser').value.trim();
+            if (!user) return showToast("Введите ник!");
+            if (user === ADMIN_USERNAME) return showToast("Нельзя забрать права у главного админа!");
+            if (!isAdmin(user)) return showToast("Пользователь не является админом!");
+            
+            adminsDB = adminsDB.filter(u => u !== user);
+            localStorage.setItem('modhub_admins', JSON.stringify(adminsDB));
+            showToast(`Права администратора забраны у ${user}!`);
+            document.getElementById('adminNewUser').value = '';
+        });
+
+        // ==========================================
+        // ИМПОРТ И ЭКСПОРТ СБОРОК + СОЗДАНИЕ
+        // ==========================================
+        document.getElementById('exportPacksBtn').addEventListener('click', () => {
+            if (Object.keys(savedPacks).length === 0) return showToast('Нет сборок для экспорта!');
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedPacks));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `modhub_backup_${currentUser || 'guest'}.json`);
+            document.body.appendChild(dlAnchorElem);
+            dlAnchorElem.click();
+            dlAnchorElem.remove();
+            showToast("Сборки успешно экспортированы!");
+        });
+
+        document.getElementById('importPacksInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                if (file.name.endsWith('.json')) {
+                    const text = await file.text();
+                    const importedPacks = JSON.parse(text);
+                    savedPacks = Object.assign({}, savedPacks, importedPacks);
+                    savePacksToStorage();
+                    renderProfilePacks();
+                    showToast("Сборки из JSON успешно импортированы!");
+                } else if (file.name.endsWith('.mrpack')) {
+                    const zip = await JSZip.loadAsync(file);
+                    const indexFile = zip.file("modrinth.index.json");
+                    if (indexFile) {
+                        const indexText = await indexFile.async("string");
+                        const indexJson = JSON.parse(indexText);
+                        const packName = indexJson.name || file.name.replace('.mrpack', '');
+                        
+                        const importedCart = indexJson.files.map(f => {
+                            const filename = f.path.split('/').pop();
+                            let type = 'mod';
+                            if (f.path.includes('resourcepacks')) type = 'resourcepack';
+                            else if (f.path.includes('shaderpacks')) type = 'shader';
+                            else if (f.path.includes('datapacks')) type = 'datapack';
+
+                            return { id: 'imported', title: filename, url: f.downloads[0], filename: filename, sizeMB: (f.fileSize / 1024 / 1024).toFixed(2), type: type };
+                        });
+                        
+                        savedPacks[packName] = importedCart;
+                        savePacksToStorage();
+                        renderProfilePacks();
+                        showToast(`Модпак "${packName}" успешно импортирован!`);
+                    } else { showToast("Ошибка: Неверный формат .mrpack"); }
+                } else { showToast("Неподдерживаемый формат файла!"); }
+            } catch (error) { showToast("Ошибка при импорте файла!"); }
+            e.target.value = '';
+        });
+
+        // Создание и сохранение
+        document.getElementById('createPackBtn').addEventListener('click', () => {
+            const name = newPackNameInput.value.trim();
+            if (!name || savedPacks[name]) return showToast('Неверное или занятое имя сборки');
+            autoSaveCart();
+            currentPackName = name; cart = []; savedPacks[name] = [];
+            savePacksToStorage();
+            updateCartUI(); renderProfilePacks(); newPackNameInput.value = ''; showToast('Сборка создана');
+        });
+
+        document.getElementById('saveCurrentPackBtn').addEventListener('click', () => {
+            if (cart.length === 0) return showToast('Сборка пуста!');
+            const btn = document.getElementById('saveCurrentPackBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Сохранение...';
+            btn.disabled = true;
+
+            savedPacks[currentPackName] = [...cart];
+            savePacksToStorage();
+            
+            renderProfilePacks(); 
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            showToast('Сохранено локально!');
+        });
+
+        // ==========================================
+        // ПУБЛИКАЦИЯ В СООБЩЕСТВО
+        // ==========================================
+        const publishForm = document.getElementById('publishForm');
+        const publishNameInput = document.getElementById('publishName');
+        const publishImgInput = document.getElementById('publishImgInput');
+        const publishPreviewImg = document.getElementById('publishPreviewImg');
+        let currentPublishingPack = null;
+        let currentPublishingImgBase64 = defaultIcon;
+
+        publishImgInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 500 * 1024) { showToast("Картинка слишком большая! Выберите файл до 500 KB."); this.value = ''; return; }
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    currentPublishingImgBase64 = event.target.result;
+                    publishPreviewImg.src = currentPublishingImgBase64;
+                    publishPreviewImg.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function openPublishModal(packName) {
+            if (!currentUser) return showToast("Только авторизованные пользователи могут публиковать сборки!");
+            currentPublishingPack = packName;
+            publishNameInput.value = packName;
+            document.getElementById('publishDesc').value = '';
+            publishImgInput.value = '';
+            currentPublishingImgBase64 = defaultIcon;
+            publishPreviewImg.classList.add('hidden');
+            publishModal.classList.remove('hidden');
+        }
+
+        publishForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const desc = document.getElementById('publishDesc').value.trim();
+            const newCommunityPack = { id: Date.now().toString(), name: currentPublishingPack, description: desc, image: currentPublishingImgBase64, author: currentUser, mods: savedPacks[currentPublishingPack] };
+            try {
+                communityPacksDB.unshift(newCommunityPack);
+                localStorage.setItem('modhub_community_packs', JSON.stringify(communityPacksDB));
+                showToast(`Сборка "${currentPublishingPack}" опубликована!`);
+                publishModal.classList.add('hidden');
+                checkBodyOverflow();
+            } catch (err) { communityPacksDB.shift(); showToast("Ошибка: недостаточно памяти для публикации (картинка слишком тяжелая)."); }
+        });
+
+        // ==========================================
+        // ЛЕНТА СООБЩЕСТВА
+        // ==========================================
+        const communityGrid = document.getElementById('communityGrid');
+        const communityEmptyState = document.getElementById('communityEmptyState');
+
+        function renderCommunityPacks() {
+            communityGrid.innerHTML = '';
+            if (communityPacksDB.length === 0) { communityEmptyState.classList.remove('hidden'); } 
+            else {
+                communityEmptyState.classList.add('hidden');
+                communityPacksDB.forEach(pack => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-800 border border-gray-700 rounded-2xl p-5 flex flex-col hover:border-emerald-500/50 transition-colors shadow-lg relative';
+                    const safePackData = encodeURIComponent(JSON.stringify(pack));
+                    
+                    card.innerHTML = `
+                        <div class="flex gap-4 mb-4">
+                            <img src="${pack.image}" class="w-16 h-16 rounded-xl object-cover bg-gray-900 border border-gray-700 shrink-0" onerror="this.src='${defaultIcon}'">
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-white font-bold text-lg leading-tight line-clamp-1">${pack.name}</h4>
+                                <p class="text-gray-400 text-xs mt-1"><i class="fa-solid fa-user-pen mr-1 text-emerald-400"></i> ${pack.author}</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-300 text-sm mb-4 line-clamp-3 flex-grow">${pack.description}</p>
+                        <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-700">
+                            <span class="text-gray-400 text-xs font-medium bg-gray-900 px-2 py-1 rounded-lg"><i class="fa-solid fa-layer-group mr-1"></i> ${pack.mods.length} модов</span>
+                            <div class="flex gap-2">
+                                ${isAdmin(currentUser) ? `
+                                <button data-action="deleteCommunityPack" data-id="${pack.id}" class="w-8 h-8 flex items-center justify-center bg-red-900/50 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors border border-red-500/30" title="Удалить сборку (Админ)">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                                ` : ''}
+                                <button data-action="addCommunityPack" data-pack="${safePackData}" class="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-emerald-600 text-gray-300 hover:text-white rounded-lg transition-colors" title="Сохранить себе"><i class="fa-solid fa-plus"></i></button>
+                                <button data-action="downloadCommunityPack" data-pack="${safePackData}" class="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-indigo-600 text-gray-300 hover:text-white rounded-lg transition-colors" title="Скачать архив"><i class="fa-solid fa-download"></i></button>
+                            </div>
+                        </div>`;
+                    communityGrid.appendChild(card);
+                });
+            }
+        }
+
+        // ==========================================
+        // КОРЗИНА И СБОРКИ (ОБНОВЛЕНИЕ UI)
+        // ==========================================
+        const cartTitle = document.getElementById('cartTitle');
+        const cartList = document.getElementById('cartList');
+
+        function updateCartUI() {
+            cartTitle.textContent = currentPackName;
+            document.querySelectorAll('.cartBadge').forEach(b => { b.textContent = cart.length; cart.length > 0 ? b.classList.remove('hidden') : b.classList.add('hidden'); });
+            const totalSize = cart.reduce((acc, item) => acc + parseFloat(item.sizeMB || 0), 0);
+            document.getElementById('cartTotalSize').textContent = totalSize.toFixed(2) + ' MB';
+            if (cart.length === 0) {
+                document.getElementById('cartEmptyState').classList.remove('hidden'); cartList.classList.add('hidden'); document.getElementById('cartDownloadZipBtn').disabled = true;
+            } else {
+                document.getElementById('cartEmptyState').classList.add('hidden'); cartList.classList.remove('hidden'); document.getElementById('cartDownloadZipBtn').disabled = false; renderCartItems();
+            }
+        }
+
+        function renderCartItems() {
+            cartList.innerHTML = '';
+            const groups = { 'mod': { title: '📦 Моды', items: [] }, 'resourcepack': { title: '🎨 Текстур-паки', items: [] }, 'shader': { title: '✨ Шейдеры', items: [] }, 'datapack': { title: '⚙️ Датапаки', items: [] }, 'other': { title: '📎 Другое', items: [] } };
+            cart.forEach((item, index) => { let type = item.type || 'mod'; if (!groups[type]) type = 'other'; groups[type].items.push({ item, originalIndex: index }); });
+            for (const key in groups) {
+                if (groups[key].items.length > 0) {
+                    const header = document.createElement('div'); header.className = 'text-xs font-bold text-gray-400 uppercase tracking-wider mt-5 mb-2 px-1 border-b border-gray-800 pb-1'; header.textContent = groups[key].title; cartList.appendChild(header);
+                    groups[key].items.forEach(({item, originalIndex}) => {
+                        const li = document.createElement('li'); li.className = 'bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center justify-between gap-4 mb-2 hover:border-indigo-500/30 transition-colors';
+                        li.innerHTML = `
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-white font-bold text-sm truncate">${item.title}</h4>
+                                <p class="text-gray-400 text-xs truncate mt-1"><i class="fa-solid fa-file-code mr-1"></i> ${item.filename} <span class="ml-2 text-indigo-400">${item.sizeMB} MB</span></p>
+                            </div>
+                            <button class="removeCartBtn text-gray-500 hover:text-red-400 w-8 h-8 rounded-lg transition-colors shrink-0" data-index="${originalIndex}"><i class="fa-solid fa-trash"></i></button>`;
+                        cartList.appendChild(li);
+                    });
+                }
+            }
+            document.querySelectorAll('.removeCartBtn').forEach(btn => { btn.addEventListener('click', (e) => { cart.splice(parseInt(e.currentTarget.getAttribute('data-index')), 1); autoSaveCart(); updateCartUI(); }); });
+        }
+
+        function renderProfilePacks() {
+            const packNames = Object.keys(savedPacks); const emptyState = document.getElementById('profileEmptyState'); const list = document.getElementById('savedPacksList');
+            if (packNames.length === 0) { emptyState.classList.remove('hidden'); list.classList.add('hidden'); return; }
+            emptyState.classList.add('hidden'); list.classList.remove('hidden'); list.innerHTML = '';
+            packNames.forEach(name => {
+                const packMods = savedPacks[name]; const li = document.createElement('li'); li.className = `bg-gray-800 border ${name === currentPackName ? 'border-indigo-500' : 'border-gray-700'} rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4`;
+                const safeNameAttr = encodeURIComponent(name);
+                li.innerHTML = `
+                    <div class="flex-1 w-full">
+                        <h4 class="text-white font-bold text-sm">${name} ${name === currentPackName ? '<span class="text-[10px] bg-indigo-500 px-2 rounded-md ml-2">Активна</span>' : ''}</h4>
+                        <p class="text-gray-400 text-xs mt-1">Модов: ${packMods.length}</p>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                        <button class="publishPackBtn px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm shrink-0 shadow-lg shadow-blue-500/20" data-name="${safeNameAttr}" title="Опубликовать в сообществе"><i class="fa-solid fa-upload"></i></button>
+                        <button class="loadPackBtn px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm shrink-0" data-name="${safeNameAttr}">Загрузить</button>
+                        <button class="deletePackBtn px-3 py-2 bg-gray-700 hover:bg-red-600 text-gray-400 hover:text-white rounded-lg shrink-0" data-name="${safeNameAttr}"><i class="fa-solid fa-trash"></i></button>
+                    </div>`;
+                list.appendChild(li);
+            });
+            document.querySelectorAll('.loadPackBtn').forEach(b => b.addEventListener('click', (e) => { autoSaveCart(); const name = decodeURIComponent(e.currentTarget.getAttribute('data-name')); currentPackName = name; cart = [...savedPacks[name]]; updateCartUI(); renderProfilePacks(); showToast('Сборка загружена'); }));
+            document.querySelectorAll('.deletePackBtn').forEach(b => b.addEventListener('click', (e) => { const name = decodeURIComponent(e.currentTarget.getAttribute('data-name')); delete savedPacks[name]; if (currentPackName === name) { currentPackName = 'Новая сборка'; cart = []; updateCartUI(); } savePacksToStorage(); renderProfilePacks(); showToast('Сборка удалена'); }));
+            document.querySelectorAll('.publishPackBtn').forEach(b => b.addEventListener('click', (e) => { const name = decodeURIComponent(e.currentTarget.getAttribute('data-name')); openPublishModal(name); }));
+        }
+
+        // ==========================================
+        // КАТАЛОГ И ПОИСК
+        // ==========================================
+        const limit = 24; 
+        let currentOffset = 0; 
+        let currentSort = 'relevance'; 
+        let currentLoader = ''; 
+        let currentVersion = ''; 
+        let currentProjectType = ''; 
+        let currentCategory = ''; 
+        let currentQuery = ''; 
+        let isFetching = false; 
+        let searchTimeout = null; 
+        let currentAbortController = null; 
+        let currentProjectContext = null;
+
+        const loading = document.getElementById('loading'); 
+        const emptyState = document.getElementById('emptyState'); 
+        const modsGrid = document.getElementById('modsGrid'); 
+        const loadMoreContainer = document.getElementById('loadMoreContainer'); 
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+        async function fetchMods(append = false) {
+            if (append && isFetching) return;
+
+            if (!append && currentAbortController) { 
+                currentAbortController.abort(); 
+            }
+            
+            currentAbortController = new AbortController();
+            const signal = currentAbortController.signal;
+
+            isFetching = true;
+            loading.classList.remove('hidden'); 
+            emptyState.classList.add('hidden');
+            
+            if (!append) { 
+                modsGrid.innerHTML = ''; 
+                loadMoreContainer.classList.add('hidden'); 
+            } else { 
+                loadMoreBtn.disabled = true; 
+                loadMoreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; 
+            }
+
+            try {
+                let url = `https://api.modrinth.com/v2/search?query=${encodeURIComponent(currentQuery)}&limit=${limit}&offset=${currentOffset}&index=${currentSort}`;
+                
+                let facetsArray = [];
+                if (currentProjectType) facetsArray.push([`project_type:${currentProjectType}`]); 
+                if (currentCategory) facetsArray.push([`categories:${currentCategory}`]); 
+                if (currentLoader) facetsArray.push([`categories:${currentLoader}`]);
+                if (currentVersion) facetsArray.push([`versions:${currentVersion}`]);
+                
+                if (facetsArray.length > 0) url += `&facets=${encodeURIComponent(JSON.stringify(facetsArray))}`;
+                
+                const response = await fetch(url, { signal }); 
+                if (!response.ok) throw new Error('API Error');
+                
+                const data = await response.json(); 
+                
+                if (signal.aborted) return;
+
+                const mods = data.hits || [];
+                
+                if (mods.length === 0 && !append) { 
+                    emptyState.classList.remove('hidden'); 
+                } else { 
+                    renderMods(mods); 
+                    if (mods.length === limit) loadMoreContainer.classList.remove('hidden'); 
+                }
+                currentOffset += limit;
+            } catch (error) { 
+                if (error.name === 'AbortError') return;  
+                if (!append) modsGrid.innerHTML = `<div class="col-span-full py-10 flex flex-col items-center"><i class="fa-solid fa-triangle-exclamation text-5xl text-red-500 mb-4"></i><h3 class="text-xl font-bold text-white mb-2">Ошибка соединения</h3></div>`; 
+            } finally { 
+                if (!signal.aborted) {
+                    loading.classList.add('hidden'); 
+                    isFetching = false; 
+                    if (append) { 
+                        loadMoreBtn.disabled = false; 
+                        loadMoreBtn.innerHTML = 'Загрузить еще <i class="fa-solid fa-arrow-down ml-2"></i>'; 
+                    } 
+                }
+            }
+        }
+
+        function renderMods(mods) {
+            const fragment = document.createDocumentFragment();
+            mods.forEach(mod => {
+                const card = document.createElement('article'); card.className = 'bg-gray-850 border border-gray-800 rounded-2xl overflow-hidden hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all flex flex-col group cursor-pointer';
+                card.addEventListener('click', () => openProjectModal(mod.project_id));
+                card.innerHTML = `
+                    <div class="w-full h-48 bg-gray-900 flex items-center justify-center p-6 border-b border-gray-800"><img src="${mod.icon_url || defaultIcon}" loading="lazy" class="w-28 h-28 object-contain group-hover:scale-110 transition-transform drop-shadow-xl" onerror="this.src='${defaultIcon}'"></div>
+                    <div class="p-5 flex-1 flex flex-col"><div class="mb-3"><span class="px-2 py-1 text-xs font-semibold bg-gray-800 border border-gray-700 text-indigo-300 rounded-md">${mod.project_type}</span></div><h3 class="text-xl font-bold text-white mb-2 line-clamp-1">${mod.title}</h3><p class="text-gray-400 text-sm line-clamp-3 mb-4 flex-1">${mod.description}</p><div class="mt-auto pt-4 border-t border-gray-800 flex items-center justify-between text-xs text-gray-500 font-medium"><div class="truncate"><i class="fa-solid fa-user-pen mr-1"></i>${mod.author}</div><div><i class="fa-solid fa-download mr-1"></i>${(mod.downloads >= 1000000 ? (mod.downloads/1000000).toFixed(1)+'M' : mod.downloads)}</div></div></div>`;
+                fragment.appendChild(card);
+            });
+            modsGrid.appendChild(fragment);
+        }
+
+        // ==========================================
+        // МОДАЛЬНОЕ ОКНО ПРОЕКТА
+        // ==========================================
+        const modalDownloadSection = document.getElementById('modalDownloadSection'); const modalDownloadBtn = document.getElementById('modalDownloadBtn'); const modalAddToCartBtn = document.getElementById('modalAddToCartBtn'); const modalVersionSelect = document.getElementById('modalVersionSelect'); const modalLoaderSelect = document.getElementById('modalLoaderSelect');
+        let savedModalLoader = localStorage.getItem('modhub_pref_loader') || ''; let savedModalMcVer = localStorage.getItem('modhub_pref_mcver') || '';
+
+        async function openProjectModal(projectId) {
+            projectModal.classList.remove('hidden'); document.body.style.overflow = 'hidden'; document.getElementById('modalContent').classList.add('hidden'); document.getElementById('modalLoading').classList.remove('hidden');
+            try {
+                const res = await fetch(`https://api.modrinth.com/v2/project/${projectId}`); const project = await res.json();
+                let type = project.project_type; if (project.categories && project.categories.includes('datapack')) type = 'datapack';
+                currentProjectContext = { id: project.id, title: project.title, type: type };
+                document.getElementById('modalTitle').textContent = project.title; document.getElementById('modalIcon').src = project.icon_url || defaultIcon; document.getElementById('modalShortDesc').textContent = project.description; document.getElementById('modalMarkdown').innerHTML = project.body ? marked.parse(project.body) : '';
+                modalDownloadSection.classList.remove('hidden'); modalLoaderSelect.value = savedModalLoader; 
+                try {
+                    const vRes = await fetch(`https://api.modrinth.com/v2/project/${projectId}/version`); const versions = await vRes.json();
+                    if (versions.length > 0) {
+                        window.currentProjectVersions = versions;
+                        const updateButtons = (idx) => {
+                            if (!idx) return; const ver = window.currentProjectVersions[idx]; const file = ver.files.find(f => f.primary) || ver.files[0];
+                            const mcVer = ver.game_versions.length ? ver.game_versions[ver.game_versions.length - 1] : '';
+                            if (mcVer) { savedModalMcVer = mcVer; localStorage.setItem('modhub_pref_mcver', mcVer); }
+                            if (file) { modalDownloadBtn.href = file.url; modalAddToCartBtn.dataset.url = file.url; modalAddToCartBtn.dataset.filename = file.filename; modalAddToCartBtn.dataset.size = (file.size / 1024 / 1024).toFixed(2); }
+                        };
+                        const renderVers = (filter) => {
+                            modalVersionSelect.innerHTML = ''; const filtered = filter ? versions.filter(v => v.loaders.includes(filter)) : versions;
+                            if (!filtered.length) return modalVersionSelect.innerHTML = '<option>Нет версий</option>';
+                            const grouped = {};
+                            filtered.forEach((v) => { const mc = v.game_versions.length ? v.game_versions[v.game_versions.length - 1] : 'Прочее'; if (!grouped[mc]) grouped[mc] = []; grouped[mc].push({ v, idx: versions.indexOf(v) }); });
+                            Object.keys(grouped).sort((a,b) => b.localeCompare(a, undefined, {numeric: true})).forEach(mc => {
+                                const group = document.createElement('optgroup'); group.label = `Minecraft ${mc}`;
+                                grouped[mc].forEach(i => { const opt = document.createElement('option'); opt.value = i.idx; opt.textContent = `v${i.v.version_number}`; group.appendChild(opt); });
+                                modalVersionSelect.appendChild(group);
+                            });
+                            if (savedModalMcVer) { for (let i = 0; i < modalVersionSelect.options.length; i++) { if (modalVersionSelect.options[i].parentElement && modalVersionSelect.options[i].parentElement.label === `Minecraft ${savedModalMcVer}`) { modalVersionSelect.selectedIndex = i; break; } } }
+                            updateButtons(modalVersionSelect.value);
+                        };
+                        renderVers(modalLoaderSelect.value); modalVersionSelect.onchange = (e) => updateButtons(e.target.value);
+                        modalLoaderSelect.onchange = (e) => { savedModalLoader = e.target.value; localStorage.setItem('modhub_pref_loader', savedModalLoader); renderVers(e.target.value); };
+                    }
+                } catch(e) {}
+                document.getElementById('modalLoading').classList.add('hidden'); document.getElementById('modalContent').classList.remove('hidden');
+            } catch (error) {}
+        }
+
+        document.getElementById('modalAddToCartBtn').addEventListener('click', function() { if (!this.dataset.url) return; if (cart.find(i => i.filename === this.dataset.filename)) return showToast("Уже в сборке!"); cart.push({ id: currentProjectContext.id, title: currentProjectContext.title, url: this.dataset.url, filename: this.dataset.filename, sizeMB: this.dataset.size, type: currentProjectContext.type }); autoSaveCart(); updateCartUI(); showToast(currentProjectContext.title + " добавлен в сборку"); });
+        document.getElementById('cartDownloadZipBtn').addEventListener('click', async function() { if (cart.length === 0) return; this.disabled = true; this.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> Подготовка...`; const zip = new JSZip(); const folders = { 'mod': zip.folder('mods'), 'resourcepack': zip.folder('resourcepacks'), 'shader': zip.folder('shaderpacks'), 'datapack': zip.folder('datapacks'), 'other': zip.folder('other') }; try { for (let item of cart) { const res = await fetch(item.url); const blob = await res.blob(); const itemType = item.type || 'mod'; const targetFolder = folders[itemType] || folders['other']; targetFolder.file(item.filename, blob); } const safeName = currentPackName.replace(/\s/g, '_').replace(/[^a-zA-Z0-9а-яА-Я_]/g, ''); saveAs(await zip.generateAsync({ type: "blob" }), `${safeName}.zip`); showToast("Сборка успешно скачана!"); } catch (e) { showToast("Ошибка скачивания файла!"); } this.disabled = false; this.innerHTML = `<i class="fa-solid fa-file-zipper mr-2"></i> Скачать сборку (.zip)`; });
+
+        // ==========================================
+        // AI ASSISTANT + СИСТЕМА ЛИМИТОВ
+        // ==========================================
+        const apiKey = "ТУТ_ТВОЙ_НОВЫЙ_КЛЮЧ"; // <--- ВСТАВЬ СЮДА НОВЫЙ КЛЮЧ
+        const aiChatHistory = document.getElementById('aiChatHistory');
+        const aiInput = document.getElementById('aiInput');
+        const aiSendBtn = document.getElementById('aiSendBtn');
+        const aiModCountInput = document.getElementById('aiModCount'); 
+        const aiMcVersionInput = document.getElementById('aiMcVersion');
+        const aiLoaderInput = document.getElementById('aiLoader');
+        const aiFiltersRow = document.getElementById('aiFiltersRow');
+        
+        const aiModeBuildBtn = document.getElementById('aiModeBuildBtn');
+        const aiModeChatBtn = document.getElementById('aiModeChatBtn');
+        let currentAiMode = 'build';
+
+        function getAiSetting(key, defaultValue) {
+            const val = localStorage.getItem(`modhub_ai_set_${key}`);
+            return val !== null ? parseInt(val) : defaultValue;
+        }
+
+        let aiUsageData = { buildCount: 0, chatCount: 0, cooldownUntil: 0 };
+        let cooldownTimerInterval = null;
+
+        function loadAiUsageData() {
+            if (!currentUser) return;
+            const saved = localStorage.getItem(`modhub_ai_usage_${currentUser}`);
+            if (saved) { aiUsageData = JSON.parse(saved); } else { aiUsageData = { buildCount: 0, chatCount: 0, cooldownUntil: 0 }; }
+        }
+
+        function saveAiUsageData() {
+            if (!currentUser) return;
+            localStorage.setItem(`modhub_ai_usage_${currentUser}`, JSON.stringify(aiUsageData));
+        }
+
+        function updateAiUI() {
+            loadAiUsageData();
+            const now = Date.now();
+            const isCooldown = aiUsageData.cooldownUntil > now;
+            const isAdminUser = isAdmin(currentUser);
+
+            const limitsBadge = document.getElementById('aiLimitsBadge');
+            const limitsText = document.getElementById('aiLimitsText');
+            const overlay = document.getElementById('aiCooldownOverlay');
+
+            if (isAdminUser) {
+                limitsBadge.classList.remove('hidden');
+                limitsText.innerHTML = `<span class="text-red-400 font-bold">Admin Mode</span> (Без лимитов)`;
+                if(overlay) overlay.classList.add('hidden');
+                aiInput.disabled = false;
+                aiSendBtn.disabled = false;
+                return;
+            }
+
+            limitsBadge.classList.remove('hidden');
+            
+            if (isCooldown) {
+                if(overlay) overlay.classList.remove('hidden');
+                aiInput.disabled = true;
+                aiSendBtn.disabled = true;
+                limitsText.innerHTML = `<span class="text-red-400">Охлаждение</span>`;
+                startCooldownTimer();
+            } else {
+                if(overlay) overlay.classList.add('hidden');
+                aiInput.disabled = false;
+                aiSendBtn.disabled = false;
+                clearInterval(cooldownTimerInterval);
+
+                const buildLimit = getAiSetting('buildLimit', 3);
+                const chatLimit = getAiSetting('chatLimit', 15);
+
+                if (currentAiMode === 'build') {
+                    limitsText.innerHTML = `Сборок: <b class="text-white">${aiUsageData.buildCount}/${buildLimit}</b>`;
+                } else {
+                    limitsText.innerHTML = `Сообщений: <b class="text-white">${aiUsageData.chatCount}/${chatLimit}</b>`;
+                }
+            }
+        }
+
+        function startCooldownTimer() {
+            clearInterval(cooldownTimerInterval);
+            const timerEl = document.getElementById('aiCooldownTimer');
+            const updateTimer = () => {
+                const now = Date.now();
+                const diff = aiUsageData.cooldownUntil - now;
+                if (diff <= 0) {
+                    clearInterval(cooldownTimerInterval);
+                    aiUsageData.buildCount = 0; aiUsageData.chatCount = 0;
+                    saveAiUsageData(); updateAiUI();
+                } else {
+                    const m = Math.floor(diff / 60000); const s = Math.floor((diff % 60000) / 1000);
+                    if(timerEl) timerEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                }
+            };
+            updateTimer();
+            cooldownTimerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function triggerCooldown(minutes) {
+            if (isAdmin(currentUser)) return; 
+            aiUsageData.cooldownUntil = Date.now() + (minutes * 60 * 1000);
+            saveAiUsageData();
+            const firstChild = aiChatHistory.firstElementChild;
+            const overlay = document.getElementById('aiCooldownOverlay');
+            aiChatHistory.innerHTML = '';
+            if (overlay) aiChatHistory.appendChild(overlay);
+            if (firstChild) aiChatHistory.appendChild(firstChild);
+            updateAiUI();
+        }
+
+        function incrementUsageAndCheck() {
+            if (isAdmin(currentUser)) return true;
+            const buildLimit = getAiSetting('buildLimit', 3);
+            const chatLimit = getAiSetting('chatLimit', 15);
+            if (currentAiMode === 'build') {
+                aiUsageData.buildCount++; saveAiUsageData(); updateAiUI();
+                if (aiUsageData.buildCount >= buildLimit) { setTimeout(() => triggerCooldown(getAiSetting('buildCooldown', 15)), 2000); return false; }
+            } else {
+                aiUsageData.chatCount++; saveAiUsageData(); updateAiUI();
+                if (aiUsageData.chatCount >= chatLimit) { setTimeout(() => triggerCooldown(getAiSetting('chatCooldown', 25)), 2000); return false; }
+            }
+            return true;
+        }
+
+        aiModeBuildBtn.addEventListener('click', () => {
+            currentAiMode = 'build';
+            aiModeBuildBtn.className = 'flex-1 py-2.5 text-sm font-bold rounded-xl bg-purple-600 text-white shadow-md transition-all';
+            aiModeChatBtn.className = 'flex-1 py-2.5 text-sm font-bold rounded-xl bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition-all';
+            aiFiltersRow.classList.remove('hidden'); aiInput.placeholder = 'Попросите собрать сборку...'; updateAiUI();
+        });
+
+        aiModeChatBtn.addEventListener('click', () => {
+            currentAiMode = 'chat';
+            aiModeChatBtn.className = 'flex-1 py-2.5 text-sm font-bold rounded-xl bg-purple-600 text-white shadow-md transition-all';
+            aiModeBuildBtn.className = 'flex-1 py-2.5 text-sm font-bold rounded-xl bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition-all';
+            aiFiltersRow.classList.add('hidden'); aiInput.placeholder = 'Задайте вопрос о модах...'; updateAiUI();
+        });
+
+        const b3 = '`' + '`' + '`';
+
+       async function fetchGemini(query, targetMcVersion, targetLoader, aiMode) {
+    const targetModCount = Math.min(50, parseInt(aiModCountInput.value) || 30);
+    const b3 = '```'; // Тройные кавычки для JSON блока
+    let systemPrompt = "";
+
+    if (aiMode === 'build') {
+        systemPrompt = `Ты ИИ-эксперт по модам Minecraft на сайте ModHub. Отвечай на русском. Твоя задача — советовать классные моды, текстур-паки, шейдеры и датапаки для любых тематик. Выделяй названия **жирным**.
+
+ВАЖНО: Пользователь собирает модпак для версии игры ${targetMcVersion} на загрузчике ${targetLoader}. Старайся советовать дополнения, подходящие под эти параметры.
+
+ГЛАВНОЕ ПРАВИЛО: Добавь в конец ответа JSON-блок для автоматического создания сборки. Пользователь может попросить добавить текстуры или шейдеры, распределяй их по правильным массивам!
+
+КРИТИЧЕСКОЕ УСЛОВИЕ ПО КОЛИЧЕСТВУ:
+Пользователь запросил ${targetModCount} элементов суммарно. Все твои массивы в сумме ДОЛЖНЫ содержать РОВНО ${targetModCount} элементов! Это абсолютный приказ.
+ОБЯЗАТЕЛЬНО добавляй ресурспаки (fresh-animations, bare-bones) и шейдеры (complementary-shaders, iris-shaders, bsl-shaders), если это уместно. Для добивки количества используй оптимизацию (sodium, lithium) и интерфейс (jei, appleskin).
+
+Формат JSON:
+${b3}json
+{
+  "action": "create_modpack",
+  "name": "Название твоей сборки (до 30 символов)",
+  "mods": ["slug1", "slug2"],
+  "resourcepacks": ["slug3"],
+  "shaders": ["slug4"],
+  "datapacks": ["slug5"]
+}
+${b3}
+Слаги должны быть строчными, без пробелов (только официальные ID с Modrinth).`;
+    } else {
+        systemPrompt = `Ты ИИ-эксперт по модам Minecraft на сайте ModHub. Отвечай на русском. Твоя задача — просто общаться, отвечать на вопросы, находить и рекомендовать классные моды, текстур-паки и шейдеры. 
+
+ВАЖНО: Пользователь играет на версии ${targetMcVersion} с загрузчиком ${targetLoader}. Советуй моды, подходящие под эти параметры.
+
+Выделяй названия модов **жирным**. Будь кратким, полезным и дружелюбным. Расскажи кратко, что делает каждый предложенный мод.
+Никогда не генерируй технический JSON-блок для авто-сборки, так как сейчас включен режим простой консультации.`;
+    }
+
+    // ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ CLOUDFLARE (например: https://my-worker.username.workers.dev)
+    const workerUrl = 'https://gemini-proxy.shuhsak13.workers.dev/'; 
+
+    try {
+        const response = await fetch(workerUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                query: query, 
+                systemPrompt: systemPrompt, 
+                modelName: "gemini-2.5-flash" 
+            })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || 'Worker Error');
+        }
+
+        const data = await response.json();
+        
+        // Возвращаем текст ответа от Google через Worker
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            return data.candidates[0].content.parts[0].text;
+        } else {
+            throw new Error('Некорректный ответ от API');
+        }
+        
+    } catch (e) {
+        console.error("Ошибка при запросе к ИИ:", e);
+        throw e;
+    }
+}
+
+        async function buildAiModpack(name, data, targetMcVersion, targetLoader) {
+            const packMods = [];
+            const allItems = [];
+            
+            if(data.mods) data.mods.forEach(s => allItems.push({slug: s, expectedType: 'mod'}));
+            if(data.resourcepacks) data.resourcepacks.forEach(s => allItems.push({slug: s, expectedType: 'resourcepack'}));
+            if(data.shaders) data.shaders.forEach(s => allItems.push({slug: s, expectedType: 'shader'}));
+            if(data.datapacks) data.datapacks.forEach(s => allItems.push({slug: s, expectedType: 'datapack'}));
+
+            const promises = allItems.map(async (item) => {
+                try {
+                    const [pRes, vRes] = await Promise.all([
+                        fetch(`https://api.modrinth.com/v2/project/${item.slug}`),
+                        fetch(`https://api.modrinth.com/v2/project/${item.slug}/version`)
+                    ]);
+                    if (!pRes.ok || !vRes.ok) return;
+                    
+                    const project = await pRes.json();
+                    const versions = await vRes.json();
+                    
+                    let validVersion;
+                    
+                    if (item.expectedType === 'shader' || item.expectedType === 'resourcepack' || item.expectedType === 'datapack') {
+                         validVersion = versions.find(v => v.game_versions.includes(targetMcVersion));
+                    } else {
+                         validVersion = versions.find(v => 
+                            v.game_versions.includes(targetMcVersion) && 
+                            v.loaders.includes(targetLoader)
+                        );
+                    }
+
+                    if (!validVersion) return; 
+                    
+                    const file = validVersion.files.find(f => f.primary) || validVersion.files[0];
+                    if (!file) return;
+
+                    let actualType = project.project_type || item.expectedType;
+                    if (project.categories && project.categories.includes('datapack')) actualType = 'datapack';
+                    
+                    packMods.push({
+                        id: project.id,
+                        title: project.title,
+                        url: file.url,
+                        filename: file.filename,
+                        sizeMB: (file.size / 1024 / 1024).toFixed(2),
+                        type: actualType
+                    });
+                } catch(e) {}
+            });
+            
+            await Promise.all(promises);
+            
+            if (packMods.length > 0) {
+                savedPacks[name] = packMods;
+                savePacksToStorage();
+                return { count: packMods.length, requested: allItems.length };
+            }
+            return { count: 0, requested: allItems.length };
+        }
+
+        async function sendAiMessage() {
+            if (aiUsageData.cooldownUntil > Date.now() && !isAdmin(currentUser)) return; 
+            
+            const text = aiInput.value.trim();
+            if(!text) return;
+
+            const targetMcVersion = aiMcVersionInput.value;
+            const targetLoader = aiLoaderInput.value;
+            const aiMode = currentAiMode;
+
+            aiChatHistory.insertAdjacentHTML('beforeend', `
+                <div class="flex gap-3 flex-row-reverse">
+                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center shrink-0"><i class="fa-solid fa-user text-white text-xs"></i></div>
+                    <div class="bg-indigo-600 rounded-2xl rounded-tr-none p-3 text-sm text-white max-w-[85%] shadow-sm">${text}</div>
+                </div>`);
+            aiInput.value = '';
+            aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+
+            const loadingId = 'ai-loading-' + Date.now();
+            aiChatHistory.insertAdjacentHTML('beforeend', `
+                <div id="${loadingId}" class="flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/30"><i class="fa-solid fa-robot text-white text-xs"></i></div>
+                    <div class="bg-gray-800 border border-gray-700 rounded-2xl rounded-tl-none p-4 text-sm text-gray-200 flex items-center gap-2 max-w-[85%]">
+                        <i class="fa-solid fa-circle-notch fa-spin text-purple-400"></i> Анализирую базу модов...
+                    </div>
+                </div>`);
+            aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+
+            try {
+                const responseText = await fetchGemini(text, targetMcVersion, targetLoader, aiMode);
+                const loadElem = document.getElementById(loadingId);
+                if (loadElem) loadElem.remove();
+                
+                let regex = new RegExp(b3 + '(?:json)?\\s*(\\{[\\s\\S]*?\\})\\s*' + b3);
+                let jsonMatch = responseText.match(regex);
+                
+                let visibleText = responseText;
+                let aiActionData = null;
+                
+                if (jsonMatch) {
+                    try {
+                        aiActionData = JSON.parse(jsonMatch[1]);
+                        visibleText = visibleText.replace(jsonMatch[0], ''); 
+                    } catch(e) {}
+                }
+
+                aiChatHistory.insertAdjacentHTML('beforeend', `
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/30"><i class="fa-solid fa-robot text-white text-xs"></i></div>
+                        <div class="bg-gray-800 border border-gray-700 rounded-2xl rounded-tl-none p-4 text-sm text-gray-200 prose prose-invert prose-p:my-1 prose-ul:my-1 prose-sm max-w-[85%] shadow-sm overflow-hidden">
+                            ${marked.parse(visibleText)}
+                        </div>
+                    </div>`);
+                aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+
+                if (aiMode === 'build' && aiActionData && aiActionData.action === 'create_modpack' && (aiActionData.mods || aiActionData.resourcepacks || aiActionData.shaders || aiActionData.datapacks)) {
+                    const buildLoadingId = 'ai-build-' + Date.now();
+                    aiChatHistory.insertAdjacentHTML('beforeend', `
+                        <div id="${buildLoadingId}" class="flex gap-3 mt-2">
+                            <div class="w-8 h-8 shrink-0"></div>
+                            <div class="bg-purple-900/30 border border-purple-500/30 rounded-2xl rounded-tl-none p-3 text-sm text-purple-300 flex items-center gap-2">
+                                <i class="fa-solid fa-gears fa-spin text-purple-400"></i> Скачиваю файлы дополнений для ${targetMcVersion} (${targetLoader})...
+                            </div>
+                        </div>`);
+                    aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+
+                    const buildResult = await buildAiModpack(aiActionData.name, aiActionData, targetMcVersion, targetLoader);
+                    const bLoadElem = document.getElementById(buildLoadingId);
+                    if (bLoadElem) bLoadElem.remove();
+
+                    if (buildResult.count > 0) {
+                        const safePackNameAttr = encodeURIComponent(aiActionData.name);
+                        const skipMsg = buildResult.count < buildResult.requested 
+                            ? `<p class="text-xs text-emerald-200/70 mb-3 mt-1">Отфильтровано несовместимых дополнений: ${buildResult.requested - buildResult.count}</p>` 
+                            : '';
+
+                        aiChatHistory.insertAdjacentHTML('beforeend', `
+                            <div class="flex gap-3 mt-2">
+                                <div class="w-8 h-8 shrink-0"></div>
+                                <div class="bg-emerald-900/30 border border-emerald-500/30 rounded-2xl rounded-tl-none p-4 text-sm text-emerald-100 shadow-sm w-full max-w-[85%]">
+                                    <p class="font-medium ${skipMsg ? '' : 'mb-3'}"><i class="fa-solid fa-check-circle text-emerald-400 mr-1"></i> Готово! Сборка <b>«${aiActionData.name}»</b> (${buildResult.count} элементов) создана.</p>
+                                    ${skipMsg}
+                                    <button data-action="openProfileFromAi" data-pack="${safePackNameAttr}" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl transition-colors shadow-lg shadow-emerald-500/20">
+                                        Перейти к сборке и скачать
+                                    </button>
+                                </div>
+                            </div>`);
+                    } else {
+                        aiChatHistory.insertAdjacentHTML('beforeend', `
+                            <div class="flex gap-3 mt-2">
+                                <div class="w-8 h-8 shrink-0"></div>
+                                <div class="bg-red-900/30 border border-red-500/30 rounded-2xl rounded-tl-none p-3 text-sm text-red-300">
+                                    К сожалению, мне не удалось найти файлы для этих дополнений для версии ${targetMcVersion} (${targetLoader}).
+                                </div>
+                            </div>`);
+                    }
+                    aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+                }
+
+                incrementUsageAndCheck();
+
+            } catch (error) {
+                const loadElem2 = document.getElementById(loadingId);
+                if(loadElem2) loadElem2.remove();
+                
+                aiChatHistory.insertAdjacentHTML('beforeend', `
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center shrink-0"><i class="fa-solid fa-triangle-exclamation text-white text-xs"></i></div>
+                        <div class="bg-red-500/10 text-red-400 border border-red-500/30 rounded-2xl rounded-tl-none p-4 text-sm max-w-[85%]">
+                            Сбой сети. Попробуй задать вопрос еще раз.
+                        </div>
+                    </div>`);
+            }
+            aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+        }
+
+        aiSendBtn.addEventListener('click', sendAiMessage);
+        aiInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendAiMessage(); });
+
+        // События для фильтров версии
+        document.getElementById('versionFilter').addEventListener('change', (e) => { 
+            currentVersion = e.target.value; 
+            currentOffset = 0; 
+            fetchMods(false); 
+        });
+// ==========================================
+// СОБЫТИЯ ФИЛЬТРОВ И ПОИСКА
+// ==========================================
+
+// Поиск (с debounce)
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        currentQuery = e.target.value.trim();
+        currentOffset = 0;
+        fetchMods(false);
+    }, 350);
+});
+
+// Сортировка
+document.getElementById('sortFilter').addEventListener('change', (e) => {
+    currentSort = e.target.value;
+    currentOffset = 0;
+    fetchMods(false);
+});
+
+// Версия Minecraft
+document.getElementById('versionFilter').addEventListener('change', (e) => {
+    currentVersion = e.target.value;
+    currentOffset = 0;
+    fetchMods(false);
+});
+
+// Загрузчик (Fabric / Forge / ...)
+document.getElementById('loaderFilter').addEventListener('change', (e) => {
+    currentLoader = e.target.value;
+    currentOffset = 0;
+    fetchMods(false);
+});
+
+// Категории / типы (кнопки сверху)
+document.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Обновляем активную кнопку (стили)
+        document.querySelectorAll('.cat-btn').forEach(b => {
+            b.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20');
+            b.classList.add('bg-gray-850', 'text-gray-300', 'border', 'border-gray-800');
+        });
+
+        btn.classList.remove('bg-gray-850', 'text-gray-300', 'border', 'border-gray-800');
+        btn.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20');
+
+        // Применяем фильтр
+        currentProjectType = btn.dataset.type || '';
+        currentCategory = btn.dataset.category || '';
+        currentOffset = 0;
+        fetchMods(false);
+    });
+});
+
+// Кнопка "Загрузить еще"
+loadMoreBtn.addEventListener('click', () => {
+    fetchMods(true);
+});
+        // Старт
+        loadPacks();
+        fetchMods(); 
+        updateCartUI(); 
+    </script>
+</body>
+</html>
