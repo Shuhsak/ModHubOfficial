@@ -550,6 +550,34 @@
             <p id="toastMessage" class="text-xs text-gray-400 truncate max-w-[250px]">...</p>
         </div>
     </div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+    // Твой конфиг
+    const firebaseConfig = {
+        apiKey: "AIzaSyDQ2nwdyb33Su8i02w0zt3PsxRaHc7ODwE",
+        authDomain: "modhub-base.firebaseapp.com",
+        databaseURL: "https://modhub-base-default-rtdb.firebaseio.com",
+        projectId: "modhub-base",
+        storageBucket: "modhub-base.firebasestorage.app",
+        messagingSenderId: "667345986744",
+        appId: "1:667345986744:web:e4b24a769cd068b791c04d"
+    };
+
+    // Инициализация
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Передаем функции в глобальную область, чтобы основной скрипт их видел
+    window.firebaseDB = db;
+    window.firebaseRef = ref;
+    window.firebaseSet = set;
+    window.firebaseGet = get;
+    window.firebaseChild = child;
+
+    console.log("Firebase успешно подключен!");
+</script>
 
     <script>
         // ==========================================
@@ -714,25 +742,61 @@
             }
         });
 
-        authForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const username = document.getElementById('authUsername').value.trim();
-            const password = document.getElementById('authPassword').value.trim();
+        authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value.trim();
+    
+    if (!username || !password) return showToast('Заполните все поля!');
+
+    // Меняем текст кнопки на загрузку
+    const btn = document.getElementById('authSubmitBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Загрузка...';
+    btn.disabled = true;
+    
+    const userPath = 'users/' + username;
+    const dbRef = window.firebaseRef(window.firebaseDB);
+
+    try {
+        if (isRegisterMode) {
+            // РЕГИСТРАЦИЯ В ОБЛАКЕ
+            const snapshot = await window.firebaseGet(window.firebaseChild(dbRef, userPath));
             
-            if (!username || !password) return showToast('Заполните все поля!');
-            
-            if (isRegisterMode) {
-                if (usersDB[username]) return showToast('Этот логин уже занят!');
-                usersDB[username] = password;
-                localStorage.setItem('modhub_users', JSON.stringify(usersDB));
-                loginUser(username);
-                showToast('Аккаунт успешно создан!');
+            if (snapshot.exists()) {
+                showToast('ОШИБКА: Этот никнейм уже занят!');
             } else {
-                if (usersDB[username] !== password) return showToast('Неверный логин или пароль!');
+                await window.firebaseSet(window.firebaseRef(window.firebaseDB, userPath), {
+                    password: password,
+                    regDate: Date.now()
+                });
                 loginUser(username);
-                showToast('Успешный вход!');
+                showToast('Аккаунт успешно создан в облаке!');
             }
-        });
+        } else {
+            // ВХОД ЧЕРЕЗ ОБЛАКО
+            const snapshot = await window.firebaseGet(window.firebaseChild(dbRef, userPath));
+            
+            if (snapshot.exists()) {
+                const userData = snapshot.val();
+                if (userData.password === password) {
+                    loginUser(username);
+                    showToast('Успешный вход!');
+                } else {
+                    showToast('Неверный логин или пароль!');
+                }
+            } else {
+                showToast('Такого аккаунта не существует!');
+            }
+        }
+    } catch (error) {
+        console.error("Firebase Error: ", error);
+        showToast('Ошибка базы данных! Проверьте консоль.');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
 
         document.getElementById('guestContinueBtn').addEventListener('click', () => {
             document.getElementById('authSection').classList.add('hidden');
