@@ -903,13 +903,10 @@ async function loadPacks() {
             showToast('Вы вышли из аккаунта. Включен гостевой режим.');
         });
 
-        async function loginUser(username) {
+        function loginUser(username) {
             currentUser = username;
             localStorage.setItem('modhub_currentUser', username);
-            
-            // Ждем, пока сборки скачаются с сервера
-            await loadPacks();
-            
+            loadPacks();
             currentPackName = 'Новая сборка';
             cart = [];
             updateCartUI();
@@ -1680,14 +1677,14 @@ async function fetchMods(append = false) {
 ${b3}json
 {
   "action": "create_modpack",
-  "name": "Название твоей сборки (до 30 символов)",
-  "mods": ["slug1", "slug2"],
-  "resourcepacks": ["slug3"],
-  "shaders": ["slug4"],
-  "datapacks": ["slug5"]
+  "name": "Название сборки",
+  "mods": ["sodium", "iris", "lithium"],
+  "resourcepacks": [],
+  "shaders": [],
+  "datapacks": []
 }
 ${b3}
-Слаги должны быть строчными, без пробелов (только официальные ID с Modrinth).`;
+ВАЖНО: Слаги должны быть СТРОГО официальными ID с Modrinth (например, 'memoryleakfix' вместо 'memory-leak-fix'). Выдумывать слаги запрещено. Если не уверен в точном ID — не добавляй этот мод.`;
     } else {
         systemPrompt = `Ты ИИ-эксперт по модам Minecraft на сайте ModHub. Отвечай на русском. Твоя задача — просто общаться, отвечать на вопросы, находить и рекомендовать классные моды, текстур-паки и шейдеры. 
 
@@ -1746,11 +1743,29 @@ ${b3}
 
             const promises = allItems.map(async (item) => {
                 try {
-                    const [pRes, vRes] = await Promise.all([
-                        fetch(`https://api.modrinth.com/v2/project/${item.slug}`),
-                        fetch(`https://api.modrinth.com/v2/project/${item.slug}/version`)
-                    ]);
-                    if (!pRes.ok || !vRes.ok) return;
+                    let actualSlug = item.slug;
+                    let pRes = await fetch(`https://api.modrinth.com/v2/project/${actualSlug}`);
+                    
+                    // УМНЫЙ ПОИСК: Если ИИ ошибся в ID (получили 404), пробуем найти мод через поиск Modrinth!
+                    if (pRes.status === 404) {
+                        // Заменяем дефисы на пробелы, чтобы поиск лучше работал (например "ferrite-core" -> "ferrite core")
+                        const searchQuery = encodeURIComponent(item.slug.replace(/-/g, ' '));
+                        const searchRes = await fetch(`https://api.modrinth.com/v2/search?query=${searchQuery}&limit=1`);
+                        
+                        if (searchRes.ok) {
+                            const searchData = await searchRes.json();
+                            if (searchData.hits && searchData.hits.length > 0) {
+                                actualSlug = searchData.hits[0].project_id; // Берем правильный ID из поиска
+                                pRes = await fetch(`https://api.modrinth.com/v2/project/${actualSlug}`); // Пробуем снова
+                            }
+                        }
+                    }
+
+                    // Если даже поиск не помог - пропускаем этот мод
+                    if (!pRes.ok) return;
+                    
+                    const vRes = await fetch(`https://api.modrinth.com/v2/project/${actualSlug}/version`);
+                    if (!vRes.ok) return;
                     
                     const project = await pRes.json();
                     const versions = await vRes.json();
@@ -1782,7 +1797,9 @@ ${b3}
                         sizeMB: (file.size / 1024 / 1024).toFixed(2),
                         type: actualType
                     });
-                } catch(e) {}
+                } catch(e) {
+                    console.error(`Ошибка при обработке мода ${item.slug}:`, e);
+                }
             });
             
             await Promise.all(promises);
@@ -1794,6 +1811,11 @@ ${b3}
             }
             return { count: 0, requested: allItems.length };
         }
+
+
+
+
+
 
         async function sendAiMessage() {
             if (aiUsageData.cooldownUntil > Date.now() && currentUser !== ADMIN_USERNAME) return; // Блокировка, если кулдаун
@@ -1850,32 +1872,35 @@ ${b3}
                     </div>`);
                 aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
 
-                if (aiMode === 'build' && aiActionData && aiActionData.action === 'create_modpack' && (aiActionData.mods || aiActionData.resourcepacks || aiActionData.shaders || aiActionData.datapacks)) {
+if (aiMode === 'build' && aiActionData && aiActionData.action === 'create_modpack' && (aiActionData.mods || aiActionData.resourcepacks || aiActionData.shaders || aiActionData.datapacks)) {
                     const buildLoadingId = 'ai-build-' + Date.now();
                     aiChatHistory.insertAdjacentHTML('beforeend', `
                         <div id="${buildLoadingId}" class="flex gap-3 mt-2">
                             <div class="w-8 h-8 shrink-0"></div>
                             <div class="bg-purple-900/30 border border-purple-500/30 rounded-2xl rounded-tl-none p-3 text-sm text-purple-300 flex items-center gap-2">
-                                <i class="fa-solid fa-gears fa-spin text-purple-400"></i> Скачиваю файлы дополнений для ${targetMcVersion} (${targetLoader})...
+                                <i class="fa-solid fa-gears fa-spin text-purple-400"></i> Проверяю базу Modrinth для ${targetMcVersion} (${targetLoader})...
                             </div>
                         </div>`);
                     aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
 
-                    const buildResult = await buildAiModpack(aiActionData.name, aiActionData, targetMcVersion, targetLoader);
+                    // ЗАЩИТА: Если ИИ забыл дать имя сборке, ставим дефолтное
+                    const aiPackName = aiActionData.name || "AI Сборка";
+
+                    const buildResult = await buildAiModpack(aiPackName, aiActionData, targetMcVersion, targetLoader);
                     const bLoadElem = document.getElementById(buildLoadingId);
                     if (bLoadElem) bLoadElem.remove();
 
                     if (buildResult.count > 0) {
-                        const safePackNameAttr = encodeURIComponent(aiActionData.name);
+                        const safePackNameAttr = encodeURIComponent(aiPackName);
                         const skipMsg = buildResult.count < buildResult.requested 
-                            ? `<p class="text-xs text-emerald-200/70 mb-3 mt-1">Отфильтровано несовместимых дополнений: ${buildResult.requested - buildResult.count}</p>` 
+                            ? `<p class="text-xs text-emerald-200/70 mb-3 mt-1">Отфильтровано несовместимых или несуществующих модов: ${buildResult.requested - buildResult.count}</p>` 
                             : '';
 
                         aiChatHistory.insertAdjacentHTML('beforeend', `
                             <div class="flex gap-3 mt-2">
                                 <div class="w-8 h-8 shrink-0"></div>
                                 <div class="bg-emerald-900/30 border border-emerald-500/30 rounded-2xl rounded-tl-none p-4 text-sm text-emerald-100 shadow-sm w-full max-w-[85%]">
-                                    <p class="font-medium ${skipMsg ? '' : 'mb-3'}"><i class="fa-solid fa-check-circle text-emerald-400 mr-1"></i> Готово! Сборка <b>«${aiActionData.name}»</b> (${buildResult.count} элементов) создана.</p>
+                                    <p class="font-medium ${skipMsg ? '' : 'mb-3'}"><i class="fa-solid fa-check-circle text-emerald-400 mr-1"></i> Готово! Сборка <b>«${aiPackName}»</b> (${buildResult.count} элементов) создана.</p>
                                     ${skipMsg}
                                     <button data-action="openProfileFromAi" data-pack="${safePackNameAttr}" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl transition-colors shadow-lg shadow-emerald-500/20">
                                         Перейти к сборке и скачать
@@ -1897,7 +1922,10 @@ ${b3}
                 // Увеличиваем счетчик и проверяем лимиты после успешного ответа
                 incrementUsageAndCheck();
 
-            } catch (error) {
+} catch (error) {
+                // ПЕЧАТАЕМ ОШИБКУ В КОНСОЛЬ ДЛЯ ДЕБАГА
+                console.error("Критическая ошибка в sendAiMessage:", error); 
+                
                 const loadElem2 = document.getElementById(loadingId);
                 if(loadElem2) loadElem2.remove();
                 
@@ -1905,10 +1933,11 @@ ${b3}
                     <div class="flex gap-3">
                         <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center shrink-0"><i class="fa-solid fa-triangle-exclamation text-white text-xs"></i></div>
                         <div class="bg-red-500/10 text-red-400 border border-red-500/30 rounded-2xl rounded-tl-none p-4 text-sm max-w-[85%]">
-                            Сбой сети. Попробуй задать вопрос еще раз.
+                            Произошла ошибка (проверь консоль F12). Возможно, ИИ выдал неверный формат данных или прокси-сервер перегружен.
                         </div>
                     </div>`);
             }
+
             aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
         }
 
