@@ -1,4 +1,4 @@
-<!DOCTYPE html><!DOCTYPE html>
+\<!DOCTYPE html><!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -825,12 +825,20 @@ async function loadPacks() {
             }
         });
 
-        authForm.addEventListener('submit', async (e) => {
+        // Функция для криптографического хеширования пароля (SHA-256)
+async function hashPassword(password) {
+    const msgBuffer = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('authUsername').value.trim();
-    const password = document.getElementById('authPassword').value.trim();
+    const rawPassword = document.getElementById('authPassword').value.trim();
     
-    if (!username || !password) return showToast('Заполните все поля!');
+    if (!username || !rawPassword) return showToast('Заполните все поля!');
 
     // Меняем текст кнопки на загрузку
     const btn = document.getElementById('authSubmitBtn');
@@ -842,6 +850,9 @@ async function loadPacks() {
     const dbRef = window.firebaseRef(window.firebaseDB);
 
     try {
+        // ХЕШИРУЕМ ПАРОЛЬ ПЕРЕД ОТПРАВКОЙ
+        const passwordHash = await hashPassword(rawPassword);
+
         if (isRegisterMode) {
             // РЕГИСТРАЦИЯ В ОБЛАКЕ
             const snapshot = await window.firebaseGet(window.firebaseChild(dbRef, userPath));
@@ -850,7 +861,7 @@ async function loadPacks() {
                 showToast('ОШИБКА: Этот никнейм уже занят!');
             } else {
                 await window.firebaseSet(window.firebaseRef(window.firebaseDB, userPath), {
-                    password: password,
+                    password: passwordHash, // Сохраняем ХЕШ, а не оригинальный пароль
                     regDate: Date.now()
                 });
                 loginUser(username);
@@ -862,7 +873,8 @@ async function loadPacks() {
             
             if (snapshot.exists()) {
                 const userData = snapshot.val();
-                if (userData.password === password) {
+                // Сравниваем ХЕШИ, а не открытые пароли
+                if (userData.password === passwordHash) {
                     loginUser(username);
                     showToast('Успешный вход!');
                 } else {
@@ -880,6 +892,12 @@ async function loadPacks() {
         btn.disabled = false;
     }
 });
+
+
+
+
+
+
 
         document.getElementById('guestContinueBtn').addEventListener('click', () => {
             document.getElementById('authSection').classList.add('hidden');
