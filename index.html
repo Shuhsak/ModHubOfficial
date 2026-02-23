@@ -239,7 +239,8 @@
 
     <div id="communityModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center px-4 sm:px-6">
         <div class="communityBackdrop absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
-        <div class="relative bg-gray-900 border border-emerald-500/30 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-[0_0_40px_rgba(16,185,129,0.15)] modal-animate">
+        <div class="relative bg-gray-900 border border-emerald-500/30 rounded-2xl w-full max-w-[95vw] h-[95vh] overflow-hidden flex flex-col shadow-[0_0_40px_rgba(16,185,129,0.15)] modal-animate">
+
             <div class="flex justify-between items-center p-4 sm:p-6 border-b border-gray-800 bg-gray-850 shrink-0">
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-globe text-2xl text-emerald-400"></i>
@@ -251,7 +252,7 @@
             </div>
             
             <div class="p-4 sm:p-6 overflow-y-auto flex-grow bg-gray-900">
-                <div id="communityGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div id="communityGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                     </div>
                 <div id="communityEmptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
                     <i class="fa-solid fa-users-slash text-4xl text-gray-600 mb-4"></i>
@@ -550,6 +551,43 @@
             <p id="toastMessage" class="text-xs text-gray-400 truncate max-w-[250px]">...</p>
         </div>
     </div>
+<div id="communityPackViewModal" class="fixed inset-0 z-[80] hidden flex items-center justify-center px-4 sm:px-6">
+        <div class="communityPackViewBackdrop absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-gray-900 border border-emerald-500/30 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-[0_0_40px_rgba(16,185,129,0.15)] modal-animate">
+            <div class="flex justify-between items-center p-4 sm:p-6 border-b border-gray-800 bg-gray-850 shrink-0">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-box-open text-2xl text-emerald-400"></i>
+                    <h3 id="cpvTitle" class="text-xl sm:text-2xl font-bold text-white truncate pr-4">Название сборки</h3>
+                </div>
+                <button class="closeCpvBtn text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg w-10 h-10 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 sm:p-6 overflow-y-auto flex-grow relative bg-gray-900">
+                <div class="flex flex-col sm:flex-row gap-6 mb-8">
+                    <img id="cpvIcon" src="" alt="Logo" class="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl object-cover bg-gray-850 border border-gray-800 p-2 shrink-0 shadow-lg">
+                    <div class="flex flex-col justify-center w-full">
+                        <p id="cpvAuthor" class="text-emerald-400 text-sm font-bold mb-3 uppercase tracking-wider"></p>
+                        <p id="cpvDesc" class="text-gray-300 text-base sm:text-lg mb-4 whitespace-pre-wrap"></p>
+                        
+                        <div class="mt-auto flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-800">
+                            <button id="cpvAddBtn" class="flex-1 inline-flex items-center justify-center px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20">
+                                <i class="fa-solid fa-plus mr-2"></i> Сохранить себе
+                            </button>
+                            <button id="cpvDownloadBtn" class="flex-1 inline-flex items-center justify-center px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20">
+                                <i class="fa-solid fa-download mr-2"></i> Скачать архив
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-4 border-b border-gray-800 pb-2">Список модов в сборке (<span id="cpvModsCount">0</span>)</h4>
+                    <ul id="cpvModsList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
@@ -606,33 +644,78 @@
 
         const ADMIN_USERNAME = 'Novichok1123'; // Имя админа
 
-        // Глобальная база сборок сообщества
-        let communityPacksDB = JSON.parse(localStorage.getItem('modhub_community_packs'));
-        if (!communityPacksDB || communityPacksDB.length === 0) {
-            communityPacksDB = [
-                {
-                    id: '1',
-                    name: 'Легкое Выживание',
-                    description: 'Отличная сборка для спокойной игры с улучшенными биомами и минимальной магией. Включает базовую оптимизацию.',
-                    image: defaultIcon,
-                    author: 'Notch',
-                    mods: [
-                        {title: "Sodium", filename: "sodium.jar", url: "", sizeMB: "1.2", type: "mod"},
-                        {title: "Biomes O' Plenty", filename: "biomes.jar", url: "", sizeMB: "5.4", type: "mod"}
-                    ]
-                }
-            ];
-            localStorage.setItem('modhub_community_packs', JSON.stringify(communityPacksDB));
-        }
+// Глобальная база сборок сообщества
+let communityPacksDB = [];
+// СРАЗУ ПОД НЕЙ ВСТАВЛЯЙ ЭТОТ БЛОК:
 
-        function loadPacks() {
-            const storageKey = currentUser ? `modhub_packs_${currentUser}` : 'modhub_packs_guest';
-            savedPacks = JSON.parse(localStorage.getItem(storageKey)) || {};
+// Переменные для пагинации
+let currentCommunityOffset = 0;
+const COMMUNITY_LIMIT = 20; // Сколько сборок показывать за одно нажатие
+
+async function loadCommunityPacks() {
+    try {
+        const dbRef = window.firebaseRef(window.firebaseDB);
+        const snapshot = await window.firebaseGet(window.firebaseChild(dbRef, 'community_packs'));
+        
+        if (snapshot.exists()) {
+            communityPacksDB = Object.values(snapshot.val()).reverse();
+        } else {
+            communityPacksDB = [];
+        }
+    } catch (error) {
+        console.error("Ошибка Firebase:", error);
+        showToast("Ошибка подключения к базе данных");
+        communityPacksDB = []; 
+    } finally {
+        currentCommunityOffset = 0;
+        communityGrid.innerHTML = ''; // Очищаем грид при новой загрузке
+        renderCommunityPacks(); 
+    }
+}
+        
+
+
+
+async function loadPacks() {
+            if (!currentUser) {
+                // Если гость — грузим из локальной памяти
+                savedPacks = JSON.parse(localStorage.getItem('modhub_packs_guest')) || {};
+                renderProfilePacks(); // Обновляем визуал профиля
+                return;
+            }
+
+            try {
+                // Если авторизован — тянем из Firebase
+                const dbRef = window.firebaseRef(window.firebaseDB);
+                const snapshot = await window.firebaseGet(window.firebaseChild(dbRef, `users/${currentUser}/packs`));
+                
+                if (snapshot.exists()) {
+                    savedPacks = snapshot.val();
+                } else {
+                    savedPacks = {};
+                }
+            } catch (error) {
+                console.error("Ошибка загрузки профиля из Firebase:", error);
+                showToast("Ошибка загрузки ваших сборок");
+                savedPacks = {};
+            } finally {
+                renderProfilePacks(); // Обновляем визуал профиля в любом случае
+            }
         }
 
         function savePacksToStorage() {
-            const storageKey = currentUser ? `modhub_packs_${currentUser}` : 'modhub_packs_guest';
-            localStorage.setItem(storageKey, JSON.stringify(savedPacks));
+            if (!currentUser) {
+                // Гость сохраняет локально
+                localStorage.setItem('modhub_packs_guest', JSON.stringify(savedPacks));
+                return;
+            }
+            
+            // Авторизованный юзер сохраняет прямо в Firebase в фоне
+            window.firebaseSet(window.firebaseRef(window.firebaseDB, `users/${currentUser}/packs`), savedPacks)
+                .catch(err => {
+                    console.error("Ошибка сохранения в Firebase:", err);
+                    showToast("Ошибка синхронизации с сервером!");
+                });
         }
 
         function autoSaveCart() {
@@ -820,10 +903,13 @@
             showToast('Вы вышли из аккаунта. Включен гостевой режим.');
         });
 
-        function loginUser(username) {
+        async function loginUser(username) {
             currentUser = username;
             localStorage.setItem('modhub_currentUser', username);
-            loadPacks();
+            
+            // Ждем, пока сборки скачаются с сервера
+            await loadPacks();
+            
             currentPackName = 'Новая сборка';
             cart = [];
             updateCartUI();
@@ -988,16 +1074,42 @@
             publishModal.classList.remove('hidden');
         }
 
-        publishForm.addEventListener('submit', (e) => {
+       publishForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const desc = document.getElementById('publishDesc').value.trim();
-            const newCommunityPack = { id: Date.now().toString(), name: currentPublishingPack, description: desc, image: currentPublishingImgBase64, author: currentUser, mods: savedPacks[currentPublishingPack] };
+            const packId = Date.now().toString(); // Уникальный ID сборки
+            
+            const newCommunityPack = { 
+                id: packId, 
+                name: currentPublishingPack, 
+                description: desc, 
+                image: currentPublishingImgBase64, 
+                author: currentUser, 
+                mods: savedPacks[currentPublishingPack] 
+            };
+
+            // Визуальная индикация загрузки на кнопке
+            const btn = document.getElementById('publishSubmitBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Публикация...';
+            btn.disabled = true;
+
             try {
-                communityPacksDB.unshift(newCommunityPack);
-                localStorage.setItem('modhub_community_packs', JSON.stringify(communityPacksDB));
+                // Отправляем в Firebase (создастся путь community_packs/ID_СБОРКИ)
+                await window.firebaseSet(window.firebaseRef(window.firebaseDB, 'community_packs/' + packId), newCommunityPack);
+                
                 showToast(`Сборка "${currentPublishingPack}" опубликована!`);
                 publishModal.classList.add('hidden');
-            } catch (err) { communityPacksDB.shift(); showToast("Ошибка: недостаточно памяти для публикации (картинка слишком тяжелая)."); }
+                
+                // Обновляем ленту сборок у пользователя из базы
+                await loadCommunityPacks();
+            } catch (err) { 
+                console.error(err);
+                showToast("Ошибка при публикации! Возможно, картинка слишком большая."); 
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         });
         document.querySelectorAll('.closePublishBtn, .publishBackdrop').forEach(b => b.addEventListener('click', () => { publishModal.classList.add('hidden'); }));
 
@@ -1009,36 +1121,142 @@
         const communityEmptyState = document.getElementById('communityEmptyState');
 
         function renderCommunityPacks() {
-            communityGrid.innerHTML = '';
-            if (communityPacksDB.length === 0) { communityEmptyState.classList.remove('hidden'); } 
-            else {
-                communityEmptyState.classList.add('hidden');
-                communityPacksDB.forEach(pack => {
-                    const card = document.createElement('div');
-                    card.className = 'bg-gray-800 border border-gray-700 rounded-2xl p-5 flex flex-col hover:border-emerald-500/50 transition-colors shadow-lg';
-                    const safePackData = encodeURIComponent(JSON.stringify(pack));
-                    card.innerHTML = `
-                        <div class="flex gap-4 mb-4">
-                            <img src="${pack.image}" class="w-16 h-16 rounded-xl object-cover bg-gray-900 border border-gray-700 shrink-0" onerror="this.src='${defaultIcon}'">
-                            <div>
-                                <h4 class="text-white font-bold text-lg leading-tight line-clamp-1">${pack.name}</h4>
-                                <p class="text-gray-400 text-xs mt-1"><i class="fa-solid fa-user-pen mr-1 text-emerald-400"></i> ${pack.author}</p>
-                            </div>
-                        </div>
-                        <p class="text-gray-300 text-sm mb-4 line-clamp-3 flex-grow">${pack.description}</p>
-                        <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-700">
-                            <span class="text-gray-400 text-xs font-medium bg-gray-900 px-2 py-1 rounded-lg"><i class="fa-solid fa-layer-group mr-1"></i> ${pack.mods.length} модов</span>
-                            <div class="flex gap-2">
-                                <button data-action="addCommunityPack" data-pack="${safePackData}" class="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-emerald-600 text-gray-300 hover:text-white rounded-lg transition-colors" title="Сохранить себе"><i class="fa-solid fa-plus"></i></button>
-                                <button data-action="downloadCommunityPack" data-pack="${safePackData}" class="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-indigo-600 text-gray-300 hover:text-white rounded-lg transition-colors" title="Скачать архив"><i class="fa-solid fa-download"></i></button>
-                            </div>
-                        </div>`;
-                    communityGrid.appendChild(card);
-                });
-            }
-        }
-        document.querySelectorAll('.communityOpenBtn').forEach(b => b.addEventListener('click', () => { renderCommunityPacks(); communityModal.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }));
-        document.querySelectorAll('.closeCommunityBtn, .communityBackdrop').forEach(b => b.addEventListener('click', () => { communityModal.classList.add('hidden'); if (projectModal.classList.contains('hidden') && cartModals.classList.contains('hidden') && profileModal.classList.contains('hidden') && aiModal.classList.contains('hidden')) { document.body.style.overflow = ''; } }));
+    if (communityPacksDB.length === 0) { 
+        communityEmptyState.classList.remove('hidden'); 
+        document.getElementById('communityLoadMoreContainer')?.classList.add('hidden');
+        return; 
+    } 
+    
+    communityEmptyState.classList.add('hidden');
+    
+    // Берем только нужный кусок массива
+    const packsToRender = communityPacksDB.slice(currentCommunityOffset, currentCommunityOffset + COMMUNITY_LIMIT);
+    
+    packsToRender.forEach(pack => {
+        const card = document.createElement('div');
+        // Карточка теперь курсор-поинтер и реагирует на наведение
+        card.className = 'bg-gray-800 border border-gray-700 rounded-2xl p-5 flex flex-col hover:border-emerald-500/50 transition-colors shadow-lg cursor-pointer group';
+        
+        const safePackData = encodeURIComponent(JSON.stringify(pack));
+        
+        // Клик по карточке открывает детальное окно
+        card.addEventListener('click', (e) => {
+            // Если кликнули по кнопкам "Скачать" внутри карточки, не открываем окно
+            if(e.target.closest('button')) return;
+            openCommunityPackView(pack);
+        });
+
+        card.innerHTML = `
+            <div class="flex gap-4 mb-4">
+                <img src="${pack.image}" class="w-16 h-16 rounded-xl object-cover bg-gray-900 border border-gray-700 shrink-0 group-hover:scale-105 transition-transform" onerror="this.src='${defaultIcon}'">
+                <div>
+                    <h4 class="text-white font-bold text-lg leading-tight line-clamp-1 group-hover:text-emerald-400 transition-colors">${pack.name}</h4>
+                    <p class="text-gray-400 text-xs mt-1"><i class="fa-solid fa-user-pen mr-1 text-emerald-400"></i> ${pack.author}</p>
+                </div>
+            </div>
+            <p class="text-gray-300 text-sm mb-4 line-clamp-3 flex-grow">${pack.description}</p>
+            <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-700">
+                <span class="text-gray-400 text-xs font-medium bg-gray-900 px-2 py-1 rounded-lg"><i class="fa-solid fa-layer-group mr-1"></i> ${pack.mods.length} модов</span>
+                <div class="flex gap-2">
+                    <button data-action="addCommunityPack" data-pack="${safePackData}" class="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-emerald-600 text-gray-300 hover:text-white rounded-lg transition-colors" title="Сохранить себе"><i class="fa-solid fa-plus"></i></button>
+                    <button data-action="downloadCommunityPack" data-pack="${safePackData}" class="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-indigo-600 text-gray-300 hover:text-white rounded-lg transition-colors" title="Скачать архив"><i class="fa-solid fa-download"></i></button>
+                </div>
+            </div>`;
+        communityGrid.appendChild(card);
+    });
+
+    currentCommunityOffset += COMMUNITY_LIMIT;
+
+    // Логика кнопки "Загрузить еще" для сообщества
+    let loadMoreContainer = document.getElementById('communityLoadMoreContainer');
+    if (!loadMoreContainer) {
+        loadMoreContainer = document.createElement('div');
+        loadMoreContainer.id = 'communityLoadMoreContainer';
+        loadMoreContainer.className = 'col-span-full mt-6 text-center';
+        loadMoreContainer.innerHTML = `
+            <button id="communityLoadMoreBtn" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gray-800 hover:bg-gray-700 transition-colors">
+                Загрузить еще <i class="fa-solid fa-arrow-down ml-2"></i>
+            </button>`;
+        communityGrid.parentNode.appendChild(loadMoreContainer);
+        
+        document.getElementById('communityLoadMoreBtn').addEventListener('click', () => {
+            renderCommunityPacks(); // Грузим следующую партию
+        });
+    }
+
+    // Прячем кнопку, если загрузили всё
+    if (currentCommunityOffset >= communityPacksDB.length) {
+        loadMoreContainer.classList.add('hidden');
+    } else {
+        loadMoreContainer.classList.remove('hidden');
+    }
+}
+// ==========================================
+// ЛОГИКА ПОЛНОГО ОКНА СБОРКИ СООБЩЕСТВА
+// ==========================================
+const communityPackViewModal = document.getElementById('communityPackViewModal');
+
+function openCommunityPackView(pack) {
+    document.getElementById('cpvTitle').textContent = pack.name;
+    document.getElementById('cpvAuthor').innerHTML = `<i class="fa-solid fa-user-pen mr-1"></i> Автор: ${pack.author}`;
+    document.getElementById('cpvDesc').textContent = pack.description;
+    document.getElementById('cpvIcon').src = pack.image || defaultIcon;
+    document.getElementById('cpvModsCount').textContent = pack.mods.length;
+
+    // Рендерим список модов в модалке
+    const modsList = document.getElementById('cpvModsList');
+    modsList.innerHTML = '';
+    pack.mods.forEach(mod => {
+        const li = document.createElement('li');
+        li.className = 'bg-gray-800 border border-gray-700 rounded-xl p-3 flex items-center justify-between gap-3';
+        li.innerHTML = `
+            <div class="flex-1 min-w-0">
+                <h4 class="text-white font-bold text-sm truncate">${mod.title}</h4>
+                <p class="text-gray-400 text-xs truncate mt-1"><i class="fa-solid fa-file-code mr-1"></i> ${mod.filename}</p>
+            </div>
+            <span class="bg-gray-900 border border-gray-700 px-2 py-1 rounded-lg text-indigo-400 text-xs font-bold shrink-0">${mod.sizeMB} MB</span>
+        `;
+        modsList.appendChild(li);
+    });
+
+    const safePackData = encodeURIComponent(JSON.stringify(pack));
+    
+    // Вешаем глобальные data-атрибуты на кнопки, чтобы твой старый код скачивания/сохранения заработал сам
+    const addBtn = document.getElementById('cpvAddBtn');
+    const dlBtn = document.getElementById('cpvDownloadBtn');
+    addBtn.dataset.action = "addCommunityPack";
+    addBtn.dataset.pack = safePackData;
+    dlBtn.dataset.action = "downloadCommunityPack";
+    dlBtn.dataset.pack = safePackData;
+
+    communityPackViewModal.classList.remove('hidden');
+}
+
+// Закрытие детального окна
+document.querySelectorAll('.closeCpvBtn, .communityPackViewBackdrop').forEach(b => {
+    b.addEventListener('click', () => {
+        communityPackViewModal.classList.add('hidden');
+    });
+});
+
+// Код открытия окна сообщества (со спиннером)
+        document.querySelectorAll('.communityOpenBtn').forEach(b => b.addEventListener('click', async () => { 
+            communityModal.classList.remove('hidden'); 
+            document.body.style.overflow = 'hidden'; 
+            
+            communityGrid.innerHTML = '<div class="col-span-full text-center py-10"><i class="fa-solid fa-spinner fa-spin text-4xl text-emerald-500"></i></div>';
+            communityEmptyState.classList.add('hidden');
+            
+            await loadCommunityPacks(); 
+        }));
+
+        // Код ЗАКРЫТИЯ окна сообщества (ты его случайно удалил, возвращаем)
+        document.querySelectorAll('.closeCommunityBtn, .communityBackdrop').forEach(b => b.addEventListener('click', () => { 
+            communityModal.classList.add('hidden'); 
+            if (projectModal.classList.contains('hidden') && cartModals.classList.contains('hidden') && profileModal.classList.contains('hidden') && aiModal.classList.contains('hidden')) { 
+                document.body.style.overflow = ''; 
+            } 
+        }));
 
         // ==========================================
         // КОРЗИНА И СБОРКИ (Оставлено без изменений)
