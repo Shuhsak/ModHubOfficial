@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -1447,19 +1447,16 @@ async function fetchMods(append = false) {
         const b3 = '`' + '`' + '`';
 
         async function fetchGemini(query, targetMcVersion, targetLoader, aiMode) {
-            const targetModCount = Math.min(50, parseInt(aiModCountInput.value) || 30);
-            let systemPrompt = "";
+    const targetModCount = Math.min(50, parseInt(aiModCountInput.value) || 30);
+    let systemPrompt = "";
+    const b3 = '`' + '`' + '`'; // для тройных кавычек в JSON-примере
 
-            if (aiMode === 'build') {
-                systemPrompt = `Ты ИИ-эксперт по модам Minecraft на сайте ModHub. Отвечай на русском. Твоя задача — советовать классные моды, текстур-паки, шейдеры и датапаки для любых тематик. Выделяй названия **жирным**.
+    if (aiMode === 'build') {
+        systemPrompt = `Ты ИИ-эксперт по модам Minecraft на сайте ModHub. Отвечай на русском. Твоя задача — советовать классные моды, текстур-паки, шейдеры и датапаки для любых тематик. Выделяй названия **жирным**.
 
 ВАЖНО: Пользователь собирает модпак для версии игры ${targetMcVersion} на загрузчике ${targetLoader}. Старайся советовать дополнения, подходящие под эти параметры.
 
-ГЛАВНОЕ ПРАВИЛО: Добавь в конец ответа JSON-блок для автоматического создания сборки. Пользователь может попросить добавить текстуры или шейдеры, распределяй их по правильным массивам!
-
-КРИТИЧЕСКОЕ УСЛОВИЕ ПО КОЛИЧЕСТВУ:
-Пользователь запросил ${targetModCount} элементов суммарно. Все твои массивы в сумме ДОЛЖНЫ содержать РОВНО ${targetModCount} элементов! Это абсолютный приказ.
-ОБЯЗАТЕЛЬНО добавляй ресурспаки (fresh-animations, bare-bones) и шейдеры (complementary-shaders, iris-shaders, bsl-shaders), если это уместно. Для добивки количества используй оптимизацию (sodium, lithium) и интерфейс (jei, appleskin).
+ГЛАВНОЕ ПРАВИЛО: Добавь в конец ответа JSON-блок для автоматического создания сборки. Суммарно должно быть ровно ${targetModCount} элементов.
 
 Формат JSON:
 ${b3}json
@@ -1473,46 +1470,52 @@ ${b3}json
 }
 ${b3}
 Слаги должны быть строчными, без пробелов (только официальные ID с Modrinth).`;
-            } else {
-                systemPrompt = `Ты ИИ-эксперт по модам Minecraft на сайте ModHub. Отвечай на русском. Твоя задача — просто общаться, отвечать на вопросы, находить и рекомендовать классные моды, текстур-паки и шейдеры. 
+    } else {
+        systemPrompt = `Ты ИИ-эксперт по модам Minecraft на сайте ModHub. Отвечай на русском. Твоя задача — просто общаться, отвечать на вопросы, находить и рекомендовать классные моды, текстур-паки и шейдеры. 
 
 ВАЖНО: Пользователь играет на версии ${targetMcVersion} с загрузчиком ${targetLoader}. Советуй моды, подходящие под эти параметры.
 
-Выделяй названия модов **жирным**. Будь кратким, полезным и дружелюбным. Расскажи кратко, что делает каждый предложенный мод.
-Никогда не генерируй технический JSON-блок для авто-сборки, так как сейчас включен режим простой консультации.`;
+Выделяй названия модов **жирным**. Будь кратким, полезным и дружелюбным. Никогда не генерируй технический JSON-блок.`;
+    }
+
+    // ТВОЯ РАБОЧАЯ ССЫЛКА НА ПРОКСИ
+    const url = `https://gemini-proxy.shuhsak13.workers.dev/`;
+
+    let delay = 1000;
+    for (let i = 0; i < 5; i++) {
+        try {
+            // ВАЖНО: ОТПРАВЛЯЕМ ДАННЫЕ В ФОРМАТЕ ТВОЕГО ВОРКЕРА
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: query,
+                    systemPrompt: systemPrompt,
+                    modelName: "gemini-2.5-flash"
+                })
+            });
+
+            if (!response.ok) throw new Error('API Error');
+            const data = await response.json();
+
+            console.log("Ответ от воркера:", data); // Для проверки в консоли
+
+            if (data.error) {
+                return `Ошибка API: ${data.error.message}`;
             }
 
-            // Стабильная Flash модель для скорости
-            const modelName = "gemini-2.5-flash";
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-            
-            const payload = {
-                contents: [{ parts: [{ text: query }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] }
-            };
-
-            let delay = 1000;
-            for (let i = 0; i < 5; i++) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error('API Error');
-                    const data = await response.json();
-                    
-                    if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-                        return data.candidates[0].content.parts[0].text;
-                    }
-                    return 'Извини, я не смог сформулировать ответ.';
-                } catch (e) {
-                    if (i === 4) throw e;
-                    await new Promise(res => setTimeout(res, delay));
-                    delay *= 2;
-                }
+            if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+                return data.candidates[0].content.parts[0].text;
             }
+            return 'Извини, я не смог сформулировать ответ.';
+        } catch (e) {
+            console.error("Сбой сети:", e);
+            if (i === 4) return "Ошибка связи с прокси-сервером. Попробуйте позже.";
+            await new Promise(res => setTimeout(res, delay));
+            delay *= 2;
         }
+    }
+}
 
         async function buildAiModpack(name, data, targetMcVersion, targetLoader) {
             const packMods = [];
